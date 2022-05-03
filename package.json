@@ -1,0 +1,34 @@
+{
+  "name": "communitty",
+  "version": "1.0.0",
+  "description": "An open-source social media app created with ExpressJS and ReactJS ",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm run build --prefix client && node server.js",
+    "dev": "npx nodemon -e html,css,js,json --ignore client/build/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arnitdo/communitty.git"
+  },
+  "keywords": [
+    "communitty",
+    "social",
+    "media",
+    "react",
+    "express",
+    "node",
+    "community"
+  ],
+  "author": "arnitdo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/arnitdo/communitty/issues"
+  },
+  "homepage": "https://github.com/arnitdo/communitty#readme",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "express": "^4.18.1",
+    "pg": "^8.7.3"
+  }
+}

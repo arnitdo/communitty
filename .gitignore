@@ -101,7 +101,8 @@ dist
 .dynamodb/
 
 # TernJS port file
-.tern-port
-
-# WebStorm IDE Files
+.tern-port# WebStorm IDE Files
 .idea/
+
+# React Build Output
+client/build
