@@ -106,3 +106,7 @@ dist
 
 # React Build Output
 client/build
+
+# .js and .js.map build files from tsc
+*.js
+*.js.map
