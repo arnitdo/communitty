@@ -1,6 +1,7 @@
 import * as express from "express";
 import * as path from "path";
 import * as clientRoutes from "./routes/clientRoutes";
+import * as authRoutes from "./routes/authRoutes"
 import {preconfiguredCors} from "./utils/corsPreconfig";
 import helmet from "helmet";
 
@@ -24,6 +25,8 @@ app.use(
 
 // Serve client on all routes
 // Client side routing will be handled by react-router
+app.post("/api/signup", authRoutes.userSignup)
+
 app.get("*", clientRoutes.serveClient);
 
 // Serve app on production port
