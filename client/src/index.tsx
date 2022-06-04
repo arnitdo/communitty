@@ -20,5 +20,6 @@ function App(): JSX.Element {
     )
 }
 
+// @ts-ignore
 const container = ReactDOMClient.createRoot(document.getElementById("root"));
 container.render(<App />)

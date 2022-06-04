@@ -2,7 +2,7 @@ function developmentAPIURL(urlPath: string): string{
     // For development environments, route API calls to local express server
     // Running on localhost:8800
     // See communitty/server.ts for port information
-    return "http://localhost:8800/api" + urlPath;
+    return "http://localhost:8800" + urlPath;
 }
 
 function productionAPIURL(urlPath: string): string{
