@@ -65,6 +65,8 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 }
 
 function validateProperties(properties: object, propertyValidators: propertyValidatorType[]){
+    // A generic property validating function
+    // Returns two arrays, valid and invalid properties
     let validProperties: string[] = [],     // List of valid properties
         invalidProperties: string[] = [];   // List of invalid properties
     const propertyNames: string[] = Object.keys(properties) // List of property names
@@ -140,12 +142,11 @@ async function userSignup(req: Request, res: Response): Promise<void> {
                         "duplicateProperties": duplicateProperties
                     })
                 } else {
-                    const userSalt: string = await genSalt(10);
-                    const passHash: string = await hash(userPass, userSalt);
+                    const passHash: string = await hash(userPass, 10);
                     const verificationToken = generateVerificationToken()
                     await db.query(
-                        "INSERT INTO users VALUES ($1, $2, $3, $4, $5, NOW(), DEFAULT);",
-                        [userName, userMail, passHash, userSalt, fullName]
+                        "INSERT INTO users VALUES ($1, $2, $3, $4, NOW(), DEFAULT);",
+                        [userName, userMail, passHash, fullName]
                     )
                     await db.query(
                         "INSERT INTO inactive_users VALUES ($1, $2);",

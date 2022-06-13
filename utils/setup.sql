@@ -9,10 +9,9 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT PRIMARY KEY,                -- Username, primary
     email TEXT NOT NULL,                      -- User's email
     password TEXT NOT NULL,                   -- Hash of the password
-    salt TEXT NOT NULL,                       -- Hash salt
     full_name TEXT NOT NULL,                  -- Full name of user
     created_on DATE,                          -- Account creation date
-    activated BOOLEAN DEFAULT FALSE
+    activated BOOLEAN DEFAULT FALSE           -- Account activation status (default false for all new accounts)
 );
 
 CREATE TABLE IF NOT EXISTS inactive_users (
