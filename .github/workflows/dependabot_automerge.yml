@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: ["dev"]
 
+permissions:
+  pull-requests: write
+
 jobs:
   automerge:
     name: "Automerge Dependabot Pull Request"
