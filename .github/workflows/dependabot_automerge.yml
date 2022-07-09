@@ -8,7 +8,7 @@ jobs:
   automerge:
     name: "Automerge Dependabot Pull Request"
     runs-on: ubuntu-latest
-    if: ${{github.actor == 'dependabot'}}
+    if: ${{github.actor == 'dependabot[bot]'}}
     steps:
       - run: gh pr comment "$PR_URL" --body "@dependabot merge"
         env:
