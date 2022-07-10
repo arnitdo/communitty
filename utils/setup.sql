@@ -12,13 +12,13 @@ CREATE TABLE IF NOT EXISTS users (
     full_name TEXT NOT NULL,                  -- Full name of user
     created_on DATE,                          -- Account creation date
     activated BOOLEAN DEFAULT FALSE           -- Account activation status (default false for all new accounts)
-);
+)
 
 CREATE TABLE IF NOT EXISTS inactive_users (
     username TEXT NOT NULL,
     verificationToken TEXT NOT NULL,
     CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES users(username)
-);
+)
 
 CREATE TABLE IF NOT EXISTS posts (
     post_id SERIAL PRIMARY KEY, -- Auto-generated post id
@@ -42,4 +42,4 @@ CREATE TABLE IF NOT EXISTS posts (
     CONSTRAINT fk_author_username FOREIGN KEY (author) REFERENCES users(username)
         -- author username foreign key, we'll be pulling other author info
         -- from the users table.
-);
+)

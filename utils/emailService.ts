@@ -1,5 +1,5 @@
-import * as sendGrid from "@sendgrid/mail";
-import {baseURL} from "./url";
+import * as sendGrid from "@sendgrid/mail"
+import {baseURL} from "./url"
 
 const emailService = sendGrid
 // @ts-ignore

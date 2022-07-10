@@ -4,7 +4,7 @@
     "target": "es6",
     "sourceMap": true,
     "jsx": "preserve",
-    "strict": true
+    "strict": true,
   },
   "exclude": [
     "node_modules"

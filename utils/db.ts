@@ -1,7 +1,7 @@
-import * as pg from "pg";
-import * as dotenv from "dotenv";
+import * as pg from "pg"
+import * as dotenv from "dotenv"
 
-if (process.env.NODE_ENV == "development"){
+if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == undefined){
     dotenv.config()
     // Configure environment in case of local deployments, using .env
 } else {
