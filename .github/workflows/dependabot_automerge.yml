@@ -1,0 +1,19 @@
+name: "Merge Dependabot Pull Request"
+
+on:
+  pull_request:
+    branches: ["dev"]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: "Automerge Dependabot Pull Request"
+    runs-on: ubuntu-latest
+    if: ${{github.actor == 'dependabot[bot]'}}
+    steps:
+      - run: gh pr comment "$PR_URL" --body "@dependabot merge"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

@@ -1,0 +1,4 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow: /api/*
+# Don't allow any robots to hit API URLs
