@@ -28,10 +28,11 @@ app.use(
 
 // Serve client on all routes
 // Client side routing will be handled by react-router
-app.post("/api/user_signup", authRoutes.userSignup)
-app.post("/api/user_verify", authRoutes.userVerify)
-app.post("/api/user_login", authRoutes.userLogin)
-app.post("/api/token_refresh", authRoutes.userTokenRefresh)
+app.post("/api/auth/user_signup", authRoutes.userSignup)
+app.post("/api/auth/user_verify", authRoutes.userVerify)
+app.post("/api/auth/user_login", authRoutes.userLogin)
+app.post("/api/auth/token_refresh", authRoutes.userTokenRefresh)
+
 app.get("*", clientRoutes.serveClient)
 
 // Serve app on production port

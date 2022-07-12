@@ -395,4 +395,9 @@ async function userTokenRefresh(req: Request, res: Response): Promise<void>{
     }
 }
 
-export {userSignup, userVerify, userLogin, userTokenRefresh}
+export {
+    userSignup,
+    userVerify,
+    userLogin,
+    userTokenRefresh
+}
