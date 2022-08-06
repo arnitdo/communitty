@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS inactive_users (
     username TEXT NOT NULL,
-    verificationToken TEXT NOT NULL,
+    activationToken TEXT NOT NULL,
     CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES users(username)
 );
 

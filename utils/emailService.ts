@@ -1,5 +1,5 @@
 import * as sendGrid from "@sendgrid/mail"
-import {baseURL} from "./url"
+import {baseURL} from "./common";
 
 const emailService = sendGrid
 // @ts-ignore
@@ -16,7 +16,7 @@ async function sendVerificationMail(emailRecipient: string, userName: string, ve
     // Get base URL (In case of dev / prod environments)
     const baseURLString: string = baseURL()
     // Concatenate to form verification URL
-    const verificationURL: string = baseURLString + "/verify?userName=" + urlEncodedUsername + "&verificationToken=" + urlEncodedToken
+    const verificationURL: string = baseURLString + "/activate?userName=" + urlEncodedUsername + "&verificationToken=" + urlEncodedToken
     // Craft verification email
     const verificationMessage: object = {
         to: emailRecipient,

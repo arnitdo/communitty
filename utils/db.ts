@@ -10,9 +10,13 @@ if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == undefined){
 
 // Initialize and configure db
 // Using node-postgres (i.e) pg for PSQL connection
-const db: pg.Pool = new pg.Pool({
+const db: pg.Client = new pg.Client({
     connectionString: process.env.DATABASE_URL
-})
+});
 
-// Finally, export database connection as default export
+(async () => {
+    await db.connect();
+})()
+
+// Finally, export database connection
 export {db}
