@@ -1,8 +1,8 @@
 import * as express from "express"
 import * as path from "path"
+import * as cors from "cors"
 import helmet from "helmet"
 
-import {preconfiguredCors} from "./utils/corsPreconfig"
 import {needsBodyParams, needsToken, needsVerifiedUser} from "./utils/common"
 import {db} from "./utils/db";
 
@@ -14,7 +14,7 @@ import * as postRoutes from "./routes/postRoutes"
 const app = express()
 
 // Configure
-app.use(preconfiguredCors)
+app.use(cors())
 app.use(helmet())
 app.use(express.urlencoded({
     extended: true
