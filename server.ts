@@ -3,7 +3,7 @@ import * as path from "path"
 import * as cors from "cors"
 import helmet from "helmet"
 
-import {needsBodyParams, needsToken, needsVerifiedUser} from "./utils/common"
+import {needsBodyParams, needsToken, needsActivatedUser, needsURLParams} from "./utils/common"
 import {db} from "./utils/db";
 
 import * as clientRoutes from "./routes/clientRoutes"
@@ -17,16 +17,16 @@ const app = express()
 app.use(cors())
 app.use(helmet())
 app.use(express.urlencoded({
-    extended: true
+	extended: true
 }))
 app.use(express.json())
 
 // Serve react build files (production build, `react-scripts build`)
 // Always keep this on top, static files must be searched through first by the server
 app.use(
-    express.static(
-        path.join(__dirname, 'client/build/')
-    )
+	express.static(
+		path.join(__dirname, 'client/build/')
+	)
 )
 
 // TODO : Expand for all routes
@@ -34,35 +34,41 @@ app.use(
 // Serve client on all routes
 // Client side routing will be handled by react-router
 app.post(
-    "/api/auth/user_signup",
-    needsBodyParams("userName", "userMail", "userPass", "fullName"),
-    authRoutes.userSignup
+	"/api/auth/user_signup",
+	needsBodyParams("userName", "userMail", "userPass", "fullName"),
+	authRoutes.userSignup
 )
 app.post(
-    "/api/auth/user_activate",
-    needsBodyParams("userName", "activationToken"),
-    authRoutes.userActivate
+	"/api/auth/user_activate",
+	needsBodyParams("userName", "activationToken"),
+	authRoutes.userActivate
 )
 app.post(
-    "/api/auth/user_login",
-    needsBodyParams("userName",  "userPass"),
-    authRoutes.userLogin
-)
-
-app.post(
-    "/api/auth/token_refresh",
-    needsBodyParams("authToken", "refreshToken"),
-    authRoutes.userTokenRefresh
+	"/api/auth/user_login",
+	needsBodyParams("userName",  "userPass"),
+	authRoutes.userLogin
 )
 
 app.post(
-    "/api/posts/new",
-    [
-        needsToken,
-        needsVerifiedUser,
-        needsBodyParams("postTitle", "postType", "postBody") // "postTags" is optional here!
-    ],
-    postRoutes.createPost
+	"/api/auth/token_refresh",
+	needsBodyParams("authToken", "refreshToken"),
+	authRoutes.userTokenRefresh
+)
+
+app.post(
+	"/api/posts/new",
+	[
+		needsToken,
+		needsActivatedUser,
+		needsBodyParams("postTitle", "postType", "postBody") // "postTags" is optional here!
+	],
+	postRoutes.createPost
+)
+
+app.get(
+	"/api/posts/:postID/",
+	needsURLParams("postID"),
+	postRoutes.getPost
 )
 
 app.get("*", clientRoutes.serveClient)
@@ -70,20 +76,20 @@ app.get("*", clientRoutes.serveClient)
 // Serve app on production port
 // Empty callback as of now
 const appServer = app.listen(process.env.PORT || 8800, () => {
-    console.log("Communitty backend server is up and running!")
+	console.log("Communitty backend server is up and running!")
 })
 
 // Many IDEs send SIGINT to processes
 process.on("SIGINT", () => {
-    appServer.close()
+	appServer.close()
 })
 
 // Heroku sends SIGTERM to processes
 process.on("SIGTERM", () => {
-    appServer.close()
+	appServer.close()
 })
 
 appServer.on('close', async () => {
-    await db.end()
-    console.log("Stopping communitty backend server")
+	await db.end()
+	console.log("Stopping communitty backend server")
 })
