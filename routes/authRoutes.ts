@@ -1,9 +1,9 @@
 import {db} from "../utils/db"
-import {sendVerificationMail} from "../utils/emailService"
+import {sendActivationMail} from "../utils/emailService"
 import {sign, verify} from "jsonwebtoken"
 import {hash, compare} from "bcrypt"
 import {Request, Response} from "express"
-import {propertyValidatorType, validateAuthToken, validateRefreshToken} from "../utils/common"
+import {PropertyValidatorType, validateAuthToken, validateRefreshToken} from "../utils/common"
 
 function validateEmail(email: string): boolean {
     let emailRegex: RegExp = /^[\w+-.]*@[^.][a-z.-]*\.[a-zA-Z]{2,}$/
@@ -91,7 +91,7 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
     return [isDuplicateUserName, isDuplicateUserMail]
 }
 
-function validateProperties(properties: object, propertyValidators: propertyValidatorType[]) {
+function validateProperties(properties: object, propertyValidators: PropertyValidatorType[]) {
     // A generic property validating function
     // Returns two arrays, valid and invalid properties
     let validProperties: string[] = [],     // List of valid properties
@@ -100,7 +100,7 @@ function validateProperties(properties: object, propertyValidators: propertyVali
     propertyNames.forEach((propertyName: string, propertyIndex: number) => { // For each property, do
         // @ts-ignore
         const propertyValue = properties[propertyName] // Get property value from name
-        const propertyValidator: propertyValidatorType = propertyValidators[propertyIndex] // Get corresponding validator
+        const propertyValidator: PropertyValidatorType = propertyValidators[propertyIndex] // Get corresponding validator
         const validProperty = propertyValidator(propertyValue) // Get validation result (boolean)
         if (validProperty) {
             validProperties.push(propertyName) // Mark as valid property
@@ -135,7 +135,7 @@ async function userSignup(req: Request, res: Response): Promise<void> {
             userPass,
             fullName
         }
-        const propertyValidators: propertyValidatorType[] = [   // List of property validator functions
+        const propertyValidators: PropertyValidatorType[] = [   // List of property validator functions
             validateUsername, validateEmail, validatePassword, validateFullName
         ]
         // Get valid and invalid properties
@@ -175,7 +175,7 @@ async function userSignup(req: Request, res: Response): Promise<void> {
                     [userName, verificationToken]
                 )
                 // Send verification mail
-                await sendVerificationMail(userMail, userName, verificationToken)
+                await sendActivationMail(userMail, userName, verificationToken)
                 await db.query("COMMIT;")      // Commit transaction to db
                 res.status(200).json({
                     "actionResult": "SUCCESS"                 // Notify of success
