@@ -20,17 +20,17 @@ function getRandomTagsFromTitle(postTitle: string): string[] {
 	})
 
 	titleWords = titleWords.filter((titleWord: string) => {
-		if (titleWord == ""){
+		if (titleWord == "") {
 			return false
 		}
 		return true
 	})
 
-	if (titleWords.length < 4){
+	if (titleWords.length < 4) {
 		return titleWords
 	}
 
-	while(tags.size < 4){
+	while (tags.size < 4) {
 		const randomWordIndex = Math.floor(Math.random() * titleWords.length)
 		const randomWord = titleWords.at(randomWordIndex)!
 		tags.add(randomWord)
@@ -47,7 +47,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 		// Get the post's author from the current authenticated user's token
 		const postAuthor = getAuthenticatedUser(req)
 		const postType: PostType = req.body.postType || "TEXT_POST"
-		if (postType != "TEXT_POST"){
+		if (postType != "TEXT_POST") {
 			try {
 				// Note that the post body must be a valid URL in case of
 				// Link, Image or Video posts
@@ -56,15 +56,15 @@ async function createPost(req: Request, res: Response): Promise<void> {
 
 				// We'll make a test call to the URL. A 404 will result in the post being discarded
 				const linkResponse = await fetch(postBody)
-				if (!linkResponse.ok){
+				if (!linkResponse.ok) {
 					res.status(400).json({
 						"actionResult": "ERR_INVALID_PROPERTIES",
 						"invalidProperties": ["postBody"]
 					})
 					return
 				}
-			} catch (err){
-				if (err instanceof TypeError){
+			} catch (err) {
+				if (err instanceof TypeError) {
 					res.status(400).json({
 						"actionResult": "ERR_INVALID_PROPERTIES",
 						"invalidProperties": ["postBody"]
@@ -77,7 +77,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 		}
 		let postTags: string[] = [];
 		let requestTags: string | null | undefined = req.body.postTags
-		if (requestTags != null){
+		if (requestTags != null) {
 			postTags = requestTags.trim().split(",")
 		} else {
 			postTags = getRandomTagsFromTitle(postTitle)
@@ -107,7 +107,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
 	try {
 		const {postID} = req.params
 		const numericPostID = parseInt(postID)
-		if (isNaN(numericPostID)){
+		if (isNaN(numericPostID)) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["postID"]
@@ -128,7 +128,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
 				"postData": postData
 			})
 		}
-	} catch (err){
+	} catch (err) {
 		console.error(err)
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
