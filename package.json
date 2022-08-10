@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx tsc && node server.js",
-    "dev": "concurrently \"npm run start --prefix client\" \"npx nodemon --ignore client/ -e ts\"",
+    "dev": "concurrently \"npm run start --prefix client\" \"npx nodemon --ignore client/ -e ts,.env\"",
     "build": "npm install --production && cd client && npm install --production && cd .. && npx tsc && npm run build --prefix client",
     "build-dev": "npm install && cd client && npm install && cd .. && npx tsc && npm run build --prefix client"
   },
