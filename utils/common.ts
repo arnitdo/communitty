@@ -2,7 +2,9 @@ import {Request, Response} from "express";
 import {JwtPayload, TokenExpiredError, verify} from "jsonwebtoken";
 import {db} from "./db";
 
-type propertyValidatorType = (property: any) => boolean
+type PropertyValidatorType = (property: any) => boolean
+
+type MiddlewareType = (req: Request, res: Response, next: (...args: any[]) => any) => void
 
 function validateAuthToken(authToken: string): [boolean, JwtPayload | null] {
     let authTokenData: JwtPayload = {}
@@ -122,10 +124,10 @@ async function needsToken(req: Request, res: Response, next: () => any): Promise
 
 // Middleware to accept requests that have all the required parameters.
 // Reject requests that do not have all listed body params
-function needsBodyParams(...requiredParams: string[]): (req: Request, res: Response, next: () => void) => void {
+function needsBodyParams(...requiredParams: string[]): MiddlewareType {
     // Dynamically generates a middleware function that verifies
     // if all required body params are provided in the request body
-    return function (req: Request, res: Response, next: () => void) {
+    return function (req: Request, res: Response, next: (...args: any[]) => void) {
         if (req.body) {
             const requestParams: string[] = Object.keys(req.body);
             let missingProperties: string[] = [];
@@ -136,19 +138,51 @@ function needsBodyParams(...requiredParams: string[]): (req: Request, res: Respo
             }
             if (missingProperties.length > 0) {
                 res.status(400).json({
-                    "actionResult": "ERR_MISSING_PROPERTIES",
+                    "actionResult": "ERR_MISSING_BODY_PARAMS",
                     "missingProperties": missingProperties
                 })
             } else {
                 next();
             }
+        } else {
+            res.status(400).json({
+                "actionResult": "ERR_MISSING_BODY_PARAMS",
+                "missingProperties": requiredParams
+            })
+        }
+    }
+}
+
+function needsURLParams(...requiredParams: string[]): MiddlewareType {
+    return function (req: Request, res: Response, next: (...args: any[]) => void) {
+        if (req.params){
+            const URLParams: string[] = Object.keys(req.params)
+            let missingProperties: string[] = [];
+            for (const requiredParam of requiredParams) {
+                if (URLParams.indexOf(requiredParam) == -1 || req.params[requiredParam] == null){
+                    missingProperties.push(requiredParam)
+                }
+            }
+            if (missingProperties.length > 0){
+                res.status(400).json({
+                    "actionResult": "ERR_MISSING_URL_PARAMS",
+                    "missingProperties": missingProperties
+                })
+            } else {
+                next();
+            }
+        } else {
+            res.status(400).json({
+                "actionResult": "ERR_MISSING_URL_PARAMS",
+                "missingProperties": requiredParams
+            })
         }
     }
 }
 
 // Ensures that the current user has activated `true` in database
 // Use this middleware *after* the needsToken middleware
-async function needsVerifiedUser(req: Request, res: Response, next: () => any): Promise<void> {
+async function needsActivatedUser(req: Request, res: Response, next: () => any): Promise<void> {
     try {
         const currentUser = getAuthenticatedUser(req)
         const {rows} = await db.query(
@@ -180,11 +214,12 @@ async function needsVerifiedUser(req: Request, res: Response, next: () => any): 
 
 export {
     baseURL,
-    propertyValidatorType,
+    PropertyValidatorType,
     validateAuthToken,
     validateRefreshToken,
     getAuthenticatedUser,
     needsToken,
     needsBodyParams,
-    needsVerifiedUser
+    needsURLParams,
+    needsActivatedUser
 }
