@@ -1,0 +1,24 @@
+Docs:
+  - docs/*
+
+Server-Routes:
+  - routes/*
+  - server.ts
+
+Server-Utils:
+  - utils/*
+
+Dependencies:
+  any: ['package.json', 'package-lock.json']
+
+Automation:
+  - .github/**
+
+Client-Dependencies:
+  any: ['client/package.json', 'client/package-lock.json']
+
+Client-Assets:
+  - client/public/**
+
+Client-Source:
+  - client/src/**
