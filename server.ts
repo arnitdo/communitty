@@ -60,7 +60,7 @@ app.post(
 	[
 		needsToken,
 		needsActivatedUser,
-		needsBodyParams("postTitle", "postType", "postBody") // "postTags" is optional here!
+		needsBodyParams("postTitle", "postBody") // "postTags" and "postType" is optional here!
 	],
 	postRoutes.createPost
 )
@@ -70,6 +70,18 @@ app.get(
 	needsURLParams("postID"),
 	postRoutes.getPost
 )
+
+app.post(
+	"/api/posts/:postID/update/",
+	[
+		needsToken,
+		needsURLParams("postID"),
+		needsBodyParams("postTitle", "postBody")
+	],
+	postRoutes.updatePost
+)
+
+app.get("/api/*", clientRoutes.apiNotFound)
 
 app.get("*", clientRoutes.serveClient)
 
