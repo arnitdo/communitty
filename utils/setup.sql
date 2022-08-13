@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS comments (
         comment_type IN ('ROOT', 'REPLY')       -- ROOT : Top-level comment
                                                 -- REPLY : Nested comment
     ),
+    comment_body TEXT NOT NULL,
+    comment_like_count INTEGER DEFAULT 0,
     comment_reply_parent INTEGER DEFAULT NULL,  -- Parent comment ID if comment is a reply
 
     CONSTRAINT fk_comment_reply_parent FOREIGN KEY (comment_reply_parent) REFERENCES comments (comment_id),    CONSTRAINT fk_comment_author_username FOREIGN KEY (comment_author) REFERENCES users(username),

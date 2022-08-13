@@ -3,7 +3,13 @@ import * as path from "path"
 import * as cors from "cors"
 import helmet from "helmet"
 
-import {needsBodyParams, needsToken, needsActivatedUser, needsURLParams} from "./utils/middleware"
+import {
+	needsBodyParams,
+	needsToken,
+	needsActivatedUser,
+	needsURLParams,
+	needsPostAuthor
+} from "./utils/middleware"
 import {db} from "./utils/db";
 
 import * as clientRoutes from "./routes/clientRoutes"
@@ -76,9 +82,20 @@ app.post(
 	[
 		needsToken,
 		needsURLParams("postID"),
-		needsBodyParams("postTitle", "postBody")
+		needsPostAuthor,
+		needsBodyParams("postTitle", "postBody") // See above ^
 	],
 	postRoutes.updatePost
+)
+
+app.post(
+	"/api/posts/:postID/delete",
+	[
+		needsToken,
+		needsURLParams("postID"),
+		needsPostAuthor
+	],
+	postRoutes.deletePost
 )
 
 app.get("/api/*", clientRoutes.apiNotFound)
@@ -91,7 +108,7 @@ const appServer = app.listen(process.env.PORT || 8800, () => {
 	console.log("Communitty backend server is up and running!")
 })
 
-// Many IDEs send SIGINT to processes
+// Many IDEs / Ctrl-Cs send SIGINT to processes
 process.on("SIGINT", () => {
 	appServer.close()
 })

@@ -122,9 +122,51 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 	}
 }
 
+async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
+	const {postID} = req.params
+
+	const numericPostID = parseInt(postID)
+	if (Number.isNaN(numericPostID)) {
+		res.status(400).json({
+			"actionResult": "ERR_INVALID_PROPERTIES",
+			"invalidProperties": ["postID"]
+		})
+		return
+	}
+
+	const currentUser = getAuthenticatedUser(req)
+
+	const {rows} = await db.query(
+		"SELECT post_author FROM posts WHERE post_id = $1",
+		[postID]
+	)
+
+	if (rows.length == 0){
+		// Post doesn't exist, if it were to, there would be a post author
+		res.status(400).json({
+			"actionResult": "ERR_INVALID_PROPERTIES",
+			"invalidProperties": ["postID"]
+		})
+		return
+	}
+
+	const postAuthor = rows[0].post_author
+
+	if (postAuthor != currentUser){
+		// You can't manage someone else's posts!
+		res.status(400).json({
+			"actionResult": "ERR_INSUFFICIENT_PERMS"
+		})
+		return
+	}
+
+	next()
+}
+
 export {
 	needsToken,
 	needsBodyParams,
 	needsURLParams,
-	needsActivatedUser
+	needsActivatedUser,
+	needsPostAuthor
 }
