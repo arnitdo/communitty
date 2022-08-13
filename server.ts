@@ -3,7 +3,7 @@ import * as path from "path"
 import * as cors from "cors"
 import helmet from "helmet"
 
-import {needsBodyParams, needsToken, needsActivatedUser, needsURLParams} from "./utils/common"
+import {needsBodyParams, needsToken, needsActivatedUser, needsURLParams} from "./utils/middleware"
 import {db} from "./utils/db";
 
 import * as clientRoutes from "./routes/clientRoutes"
