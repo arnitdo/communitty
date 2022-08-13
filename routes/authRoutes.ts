@@ -228,7 +228,7 @@ async function userLogin(req: Request, res: Response): Promise<void> {
 	try {
 		const {userName, userPass} = req.body
 		const {rows} = await db.query(
-			"SELECT username, password FROM users WHERE username = $1 LIMIT 1",
+			"SELECT username, password FROM users WHERE username = $1",
 			[userName]
 		)
 
