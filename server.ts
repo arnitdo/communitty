@@ -3,13 +3,7 @@ import * as path from "path"
 import * as cors from "cors"
 import helmet from "helmet"
 
-import {
-	needsBodyParams,
-	needsToken,
-	needsActivatedUser,
-	needsURLParams,
-	needsPostAuthor
-} from "./utils/middleware"
+import * as middleware from "./utils/middleware"
 import {db} from "./utils/db";
 
 import * as clientRoutes from "./routes/clientRoutes"
@@ -41,49 +35,49 @@ app.use(
 // Client side routing will be handled by react-router
 app.post(
 	"/api/auth/user_signup",
-	needsBodyParams("userName", "userMail", "userPass", "fullName"),
+	middleware.needsBodyParams("userName", "userMail", "userPass", "fullName"),
 	authRoutes.userSignup
 )
 app.post(
 	"/api/auth/user_activate",
-	needsBodyParams("userName", "activationToken"),
+	middleware.needsBodyParams("userName", "activationToken"),
 	authRoutes.userActivate
 )
 app.post(
 	"/api/auth/user_login",
-	needsBodyParams("userName",  "userPass"),
+	middleware.needsBodyParams("userName",  "userPass"),
 	authRoutes.userLogin
 )
 
 app.post(
 	"/api/auth/token_refresh",
-	needsBodyParams("authToken", "refreshToken"),
+	middleware.needsBodyParams("authToken", "refreshToken"),
 	authRoutes.userTokenRefresh
 )
 
 app.post(
 	"/api/posts/new",
 	[
-		needsToken,
-		needsActivatedUser,
-		needsBodyParams("postTitle", "postBody") // "postTags" and "postType" is optional here!
+		middleware.needsToken,
+		middleware.needsActivatedUser,
+		middleware.needsBodyParams("postTitle", "postBody") // "postTags" and "postType" is optional here!
 	],
 	postRoutes.createPost
 )
 
 app.get(
 	"/api/posts/:postID/",
-	needsURLParams("postID"),
+	middleware.needsURLParams("postID"),
 	postRoutes.getPost
 )
 
 app.post(
 	"/api/posts/:postID/update/",
 	[
-		needsToken,
-		needsURLParams("postID"),
-		needsPostAuthor,
-		needsBodyParams("postTitle", "postBody") // See above ^
+		middleware.needsToken,
+		middleware.needsURLParams("postID"),
+		middleware.needsPostAuthor,
+		middleware.needsBodyParams("postTitle", "postBody") // See above ^
 	],
 	postRoutes.updatePost
 )
@@ -91,9 +85,9 @@ app.post(
 app.post(
 	"/api/posts/:postID/delete",
 	[
-		needsToken,
-		needsURLParams("postID"),
-		needsPostAuthor
+		middleware.needsToken,
+		middleware.needsURLParams("postID"),
+		middleware.needsPostAuthor
 	],
 	postRoutes.deletePost
 )
