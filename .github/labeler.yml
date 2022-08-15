@@ -9,15 +9,13 @@ Server-Utils:
   - utils/*
 
 Dependencies:
-  - package.json
-  - package-lock.json
+  - package*
 
 Automation:
   - .github/**
 
 Client-Dependencies:
-  - client/package.json
-  - client/package-lock.json
+  - client/package*
 
 Client-Assets:
   - client/public/**
