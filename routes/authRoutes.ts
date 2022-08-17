@@ -1,9 +1,10 @@
 import {db} from "../utils/db"
 import {sendActivationMail} from "../utils/emailService"
-import {sign, verify} from "jsonwebtoken"
+import {sign} from "jsonwebtoken"
 import {hash, compare} from "bcrypt"
-import {Request, Response} from "express"
+import {Router, Request, Response} from "express"
 import {PropertyValidatorType, validateAuthToken, validateRefreshToken} from "../utils/common"
+import * as middleware from "../utils/middleware";
 
 function validateEmail(email: string): boolean {
 	let emailRegex: RegExp = /^[\w+-.]*@[^.][a-z.-]*\.[a-zA-Z]{2,}$/
@@ -315,9 +316,30 @@ async function userTokenRefresh(req: Request, res: Response): Promise<void> {
 	}
 }
 
-export {
-	userSignup,
-	userActivate,
-	userLogin,
+const authRouter = Router()
+
+authRouter.post(
+	"/api/auth/user_signup",
+	middleware.needsBodyParams("userName", "userMail", "userPass", "fullName"),
+	userSignup
+)
+authRouter.post(
+	"/api/auth/user_activate",
+	middleware.needsBodyParams("userName", "activationToken"),
+	userActivate
+)
+authRouter.post(
+	"/api/auth/user_login",
+	middleware.needsBodyParams("userName",  "userPass"),
+	userLogin
+)
+
+authRouter.post(
+	"/token_refresh",
+	middleware.needsBodyParams("authToken", "refreshToken"),
 	userTokenRefresh
+)
+
+export {
+	authRouter
 }

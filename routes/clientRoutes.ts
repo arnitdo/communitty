@@ -1,9 +1,5 @@
 import * as path from "path"
-import {Request, Response} from "express";
-
-function apiNotFound(req: Request, res: Response){
-	res.sendStatus(404)
-}
+import {Router, Request, Response} from "express";
 
 function serveClient(req: Request, res: Response){
 	res.status(200).sendFile(
@@ -11,7 +7,13 @@ function serveClient(req: Request, res: Response){
 	)
 }
 
+const clientRouter = Router()
+
+// Serve client on all routes
+// Note that client-sided errors (such as invalid URLs) will be
+// handled by react-router. We don't need to specify any specific error routes
+clientRouter.get("*", serveClient)
+
 export {
-	apiNotFound,
-	serveClient
+	clientRouter
 }

@@ -1,7 +1,8 @@
 import {db} from '../utils/db'
-import {Request, Response} from 'express'
-import {getAuthenticatedUser} from "../utils/common";
+import {Request, Response, Router} from 'express'
+import {getAuthenticatedUser} from "../utils/common"
 import * as url from 'node:url'
+import * as middleware from "../utils/middleware"
 
 type PostType = "TEXT_POST" | "LINK_POST" | "IMAGE_POST" | "VIDEO_POST"
 
@@ -267,9 +268,45 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 	}
 }
 
-export {
-	createPost,
-	getPost,
-	updatePost,
+const postRouter = Router()
+
+postRouter.post(
+	"/",
+	[
+		middleware.needsToken,
+		middleware.needsActivatedUser,
+		middleware.needsBodyParams("postTitle", "postBody") // "postTags" and "postType" is optional here!
+	],
+	createPost
+)
+
+postRouter.get(
+	"/:postId/",
+	middleware.needsURLParams("postId"),
+	getPost
+)
+
+postRouter.put(
+	"/:postId/",
+	[
+		middleware.needsToken,
+		middleware.needsURLParams("postId"),
+		middleware.needsPostAuthor,
+		middleware.needsBodyParams("postTitle", "postBody") // See above ^
+	],
+	updatePost
+)
+
+postRouter.delete(
+	"/:postId/",
+	[
+		middleware.needsToken,
+		middleware.needsURLParams("postId"),
+		middleware.needsPostAuthor
+	],
 	deletePost
+)
+
+export {
+	postRouter
 }

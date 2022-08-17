@@ -3,12 +3,10 @@ import * as path from "path"
 import * as cors from "cors"
 import helmet from "helmet"
 
-import * as middleware from "./utils/middleware"
 import {db} from "./utils/db";
 
-import * as clientRoutes from "./routes/clientRoutes"
-import * as authRoutes from "./routes/authRoutes"
-import * as postRoutes from "./routes/postRoutes"
+import {apiRouter} from "./routes/apiRoutes";
+import {clientRouter} from "./routes/clientRoutes";
 
 // Initialize ExpressJS App
 const app = express()
@@ -29,75 +27,16 @@ app.use(
 	)
 )
 
-// TODO : Expand for all routes
+// Heroku proxies requests, required for express-rate-limit middleware
+app.set("trust proxy", true)
 
-// Serve client on all routes
-// Client side routing will be handled by react-router
-app.post(
-	"/api/auth/user_signup",
-	middleware.needsBodyParams("userName", "userMail", "userPass", "fullName"),
-	authRoutes.userSignup
-)
-app.post(
-	"/api/auth/user_activate",
-	middleware.needsBodyParams("userName", "activationToken"),
-	authRoutes.userActivate
-)
-app.post(
-	"/api/auth/user_login",
-	middleware.needsBodyParams("userName",  "userPass"),
-	authRoutes.userLogin
-)
+// Use the API router here
+app.use("/api/", apiRouter)
 
-app.post(
-	"/api/auth/token_refresh",
-	middleware.needsBodyParams("authToken", "refreshToken"),
-	authRoutes.userTokenRefresh
-)
-
-app.post(
-	"/api/posts/new",
-	[
-		middleware.needsToken,
-		middleware.needsActivatedUser,
-		middleware.needsBodyParams("postTitle", "postBody") // "postTags" and "postType" is optional here!
-	],
-	postRoutes.createPost
-)
-
-app.get(
-	"/api/posts/:postId/",
-	middleware.needsURLParams("postId"),
-	postRoutes.getPost
-)
-
-app.put(
-	"/api/posts/:postId/",
-	[
-		middleware.needsToken,
-		middleware.needsURLParams("postId"),
-		middleware.needsPostAuthor,
-		middleware.needsBodyParams("postTitle", "postBody") // See above ^
-	],
-	postRoutes.updatePost
-)
-
-app.delete(
-	"/api/posts/:postId/",
-	[
-		middleware.needsToken,
-		middleware.needsURLParams("postId"),
-		middleware.needsPostAuthor
-	],
-	postRoutes.deletePost
-)
-
-app.get("/api/*", clientRoutes.apiNotFound)
-
-app.get("*", clientRoutes.serveClient)
-
+// Use the client router to serve client files
+app.use(clientRouter)
 // Serve app on production port
-// Empty callback as of now
+
 const appServer = app.listen(process.env.PORT || 8800, () => {
 	console.log("Communitty backend server is up and running!")
 })
