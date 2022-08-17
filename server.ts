@@ -66,27 +66,27 @@ app.post(
 )
 
 app.get(
-	"/api/posts/:postID/",
-	middleware.needsURLParams("postID"),
+	"/api/posts/:postId/",
+	middleware.needsURLParams("postId"),
 	postRoutes.getPost
 )
 
-app.post(
-	"/api/posts/:postID/update/",
+app.put(
+	"/api/posts/:postId/",
 	[
 		middleware.needsToken,
-		middleware.needsURLParams("postID"),
+		middleware.needsURLParams("postId"),
 		middleware.needsPostAuthor,
 		middleware.needsBodyParams("postTitle", "postBody") // See above ^
 	],
 	postRoutes.updatePost
 )
 
-app.post(
-	"/api/posts/:postID/delete",
+app.delete(
+	"/api/posts/:postId/",
 	[
 		middleware.needsToken,
-		middleware.needsURLParams("postID"),
+		middleware.needsURLParams("postId"),
 		middleware.needsPostAuthor
 	],
 	postRoutes.deletePost

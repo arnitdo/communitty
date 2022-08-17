@@ -123,13 +123,13 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 }
 
 async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
-	const {postID} = req.params
+	const {postId} = req.params
 
-	const numericPostID = parseInt(postID)
-	if (Number.isNaN(numericPostID)) {
+	const numericPostId = parseInt(postId)
+	if (Number.isNaN(numericPostId)) {
 		res.status(400).json({
 			"actionResult": "ERR_INVALID_PROPERTIES",
-			"invalidProperties": ["postID"]
+			"invalidProperties": ["postId"]
 		})
 		return
 	}
@@ -138,14 +138,14 @@ async function needsPostAuthor(req: Request, res: Response, next: (...args: any[
 
 	const {rows} = await db.query(
 		"SELECT post_author FROM posts WHERE post_id = $1",
-		[postID]
+		[postId]
 	)
 
 	if (rows.length == 0){
 		// Post doesn't exist, if it were to, there would be a post author
 		res.status(400).json({
 			"actionResult": "ERR_INVALID_PROPERTIES",
-			"invalidProperties": ["postID"]
+			"invalidProperties": ["postId"]
 		})
 		return
 	}

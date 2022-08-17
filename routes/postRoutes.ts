@@ -104,11 +104,11 @@ async function createPost(req: Request, res: Response): Promise<void> {
 		)
 		// Get the id of the newly created post
 		// Send it back to the client so that it can redirect it to the created post.
-		const newPostID = rows[0].post_id
+		const newPostId = rows[0].post_id
 		await db.query("COMMIT;")
 		res.status(200).json({
 			"actionResult": "SUCCESS",
-			"postID": newPostID
+			"postId": newPostId
 		})
 	} catch (err) {
 		console.error(err)
@@ -121,21 +121,21 @@ async function createPost(req: Request, res: Response): Promise<void> {
 
 async function getPost(req: Request, res: Response): Promise<void> {
 
-	// PostID will be passed as URL Param
-	// Route /posts/:postID/
+	// PostId will be passed as URL Param
+	// Route /posts/:postId/
 	try {
-		const {postID} = req.params
-		const numericPostID = parseInt(postID)
-		if (Number.isNaN(numericPostID)) {
+		const {postId} = req.params
+		const numericPostId = parseInt(postId)
+		if (Number.isNaN(numericPostId)) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": ["postID"]
+				"invalidProperties": ["postId"]
 			})
 			return
 		}
 		const {rows} = await db.query(
 			"SELECT * FROM posts WHERE post_id = $1",
-			[postID]
+			[postId]
 		)
 		if (rows.length == 0) {
 			// No post exists with that ID
@@ -156,11 +156,11 @@ async function getPost(req: Request, res: Response): Promise<void> {
 }
 
 async function updatePost(req: Request, res: Response): Promise<void> {
-	// PostID will be passed as URL Param
-	// Route /posts/:postID/delete/
+	// PostId will be passed as URL Param
+	// Route /posts/:postId/delete/
 	try {
 		await db.query("BEGIN;")
-		const {postID} = req.params // postID will be validated by `needsPostAuthor` middleware
+		const {postId} = req.params // postId will be validated by `needsPostAuthor` middleware
 		const {postTitle, postBody} = req.body
 
 		const postType: PostType = req.body.postType || "TEXT_POST"
@@ -221,7 +221,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 			"post_modified_date = NOW(), " +
 			"edited = TRUE " +
 			"WHERE post_id = $4;",
-			[postTitle, postBody, postTags, postID]
+			[postTitle, postBody, postTags, postId]
 		)
 
 		await db.query("COMMIT;")
@@ -239,7 +239,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 async function deletePost(req: Request, res: Response): Promise<void> {
 	try {
 		await db.query("BEGIN;")
-		const {postID} = req.params
+		const {postId} = req.params
 		/*
 			User validity (i.e. post author = request maker) will be verified by needsPostAuthor middleware
 			Post validity (i.e. correct post ID) will be verified by needsPostAuthor middleware (too!)
@@ -247,13 +247,13 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 
 		await db.query(
 			"DELETE FROM posts WHERE post_id = $1;",
-			[postID]
+			[postId]
 		)
 
 		// Delete related comments too!
 		await db.query(
 			"DELETE FROM comments WHERE comment_parent_post = $1;",
-			[postID]
+			[postId]
 		)
 
 		res.status(200).json({
