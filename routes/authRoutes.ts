@@ -3,7 +3,7 @@ import {sendActivationMail} from "../utils/emailService"
 import {sign} from "jsonwebtoken"
 import {hash, compare} from "bcrypt"
 import {Router, Request, Response} from "express"
-import {PropertyValidatorType, validateAuthToken, validateRefreshToken} from "../utils/common"
+import {PropertyValidatorType, validateProperties, validateAuthToken, validateRefreshToken} from "../utils/common"
 import * as middleware from "../utils/middleware";
 
 function validateEmail(email: string): boolean {
@@ -90,26 +90,6 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 	const isDuplicateUserMail: boolean = (rows.length != 0)
 
 	return [isDuplicateUserName, isDuplicateUserMail]
-}
-
-function validateProperties(properties: object, propertyValidators: PropertyValidatorType[]) {
-	// A generic property validating function
-	// Returns two arrays, valid and invalid properties
-	let validProperties: string[] = [],     // List of valid properties
-		invalidProperties: string[] = []    // List of invalid properties
-	const propertyNames = Object.keys(properties) // List of property names
-	propertyNames.forEach((propertyName: string, propertyIndex: number) => { // For each property, do
-		// @ts-ignore
-		const propertyValue = properties[propertyName] // Get property value from name
-		const propertyValidator: PropertyValidatorType = propertyValidators[propertyIndex] // Get corresponding validator
-		const validProperty = propertyValidator(propertyValue) // Get validation result (boolean)
-		if (validProperty) {
-			validProperties.push(propertyName) // Mark as valid property
-		} else {
-			invalidProperties.push(propertyName) // Mark as invalid property
-		}
-	})
-	return [validProperties, invalidProperties]
 }
 
 function generateVerificationToken() {
@@ -319,17 +299,17 @@ async function userTokenRefresh(req: Request, res: Response): Promise<void> {
 const authRouter = Router()
 
 authRouter.post(
-	"/api/auth/user_signup",
+	"/user_signup",
 	middleware.needsBodyParams("userName", "userMail", "userPass", "fullName"),
 	userSignup
 )
 authRouter.post(
-	"/api/auth/user_activate",
+	"/user_activate",
 	middleware.needsBodyParams("userName", "activationToken"),
 	userActivate
 )
 authRouter.post(
-	"/api/auth/user_login",
+	"/user_login",
 	middleware.needsBodyParams("userName",  "userPass"),
 	userLogin
 )

@@ -1,47 +1,160 @@
 import {db} from '../utils/db'
 import {Request, Response, Router} from 'express'
-import {getAuthenticatedUser} from "../utils/common"
+import {getAuthenticatedUser, PropertyValidatorType, validateProperties} from "../utils/common"
 import * as url from 'node:url'
 import * as middleware from "../utils/middleware"
 
-type PostType = "TEXT_POST" | "LINK_POST" | "IMAGE_POST" | "VIDEO_POST"
+type PostType = "TEXT_POST"	| "LINK_POST" 	| "IMAGE_POST"	| "VIDEO_POST"
+type SortType = "SORT_TOP"	| "SORT_HOT"	| "SORT_NEW"
 
 const validPostTypes: PostType[] = ["TEXT_POST", "LINK_POST", "IMAGE_POST", "VIDEO_POST"]
+const validSortTypes: SortType[] = ["SORT_TOP", "SORT_HOT", "SORT_NEW"]
+
+type PostSearchParamType = {
+	sortType: SortType,							// Sort Type : Hot, New or Top
+	postType: PostType | "ALL_POSTS",			// Post Type : Text, Link, Image or Video
+	searchQuery: string | null | undefined,		// Search Query : null (all posts) or specific keywords
+	searchPage: number
+}
+
+const defaultSearchParams: PostSearchParamType = {
+	sortType: "SORT_NEW",
+	postType: "ALL_POSTS",
+	searchQuery: null,
+	searchPage: 1
+}
+
+async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>{
+	// This assumes that parameter validation has been carried out by the caller
+	// In this case, the caller will be our route handler
+	const {sortType, postType, searchQuery, searchPage} = searchParams
+	let searchClauses: string[] = []
+	let baseQuery = "SELECT post_id FROM posts" // Only select post IDs, not entire post data.
+	let queryParams: any[] = [];
+
+	if (searchQuery != null){
+		let searchTags = getTagsFromString(searchQuery)
+		searchTags.forEach((searchTag, idx) => {
+			searchClauses.push(" AND $" + (idx + 1) + " = ANY(post_tags)")
+			queryParams.push(searchTag)
+		})
+	}
+
+	if (postType != "ALL_POSTS"){
+		const paramLength = queryParams.length
+		const nextParamIndex = paramLength + 1
+		searchClauses.push(" AND post_type LIKE $" + nextParamIndex)
+		queryParams.push(postType)
+	}
+
+	if (sortType == "SORT_HOT"){
+		searchClauses.push(
+			"AND (NOW() - post_modified_date) < INTERVAL '1 day'" // Hot posts = posts < 1 day old
+		)
+	}
+
+	if (sortType == "SORT_NEW"){
+		searchClauses.push(
+			" ORDER BY post_modified_date DESC"
+		)
+	}
+
+	if (sortType == "SORT_TOP"){
+		searchClauses.push(
+			" ORDER BY post_like_count DESC"
+		)
+	}
+
+	const pageOffset = ((searchPage - 1) * 10) // Using pages of 10 posts each
+
+	if (searchClauses.length > 0) {
+		baseQuery += " WHERE 1 = 1"
+		searchClauses.forEach((searchClause) => {
+			baseQuery += searchClause
+		})
+	}
+
+	baseQuery += " OFFSET " + pageOffset + " LIMIT 10";
+
+	const {rows} = await db.query(baseQuery, queryParams)
+
+	const resultPostIds = rows.map((row) => {
+		return row.post_id
+	})
+
+	return resultPostIds
+}
 
 const separatorRegex = /(\.|\s|,|_|-|;|:|!|\?)/gi
 
-function getRandomTagsFromTitle(postTitle: string): string[] {
+function getTagsFromString(tagString: string): string[] {
 	let tags: Set<string> = new Set<string>();
-	postTitle = postTitle.trim()
+	tagString = tagString.trim()
 
 	// Remove all punctuation marks and other special characters
-	const strippedPostTitle = postTitle.replace(separatorRegex, ' ')
-	let titleWords: string[] = strippedPostTitle.split(' ')
-	titleWords.forEach((titleWord: string, wordIndex: number) => {
-		titleWords[wordIndex] = titleWord
+	const strippedTagString = tagString.replace(separatorRegex, ' ')
+	let tagWords: string[] = strippedTagString.split(' ')
+	tagWords.forEach((tagWord: string, wordIndex: number) => {
+		tagWords[wordIndex] = tagWord
 			.toLowerCase()
 			.trim()
 	})
 
-	titleWords = titleWords.filter((titleWord: string) => {
-		if (titleWord == "") {
+	tagWords = tagWords.filter((tagWord: string) => {
+		if (tagWord == "") {
 			return false
 		}
 		return true
 	})
 
-	if (titleWords.length < 4) {
-		return titleWords
+	if (tagWords.length < 4) {
+		return tagWords
 	}
 
 	while (tags.size < 4) {
-		const randomWordIndex = Math.floor(Math.random() * titleWords.length)
-		const randomWord = titleWords.at(randomWordIndex)!
+		const randomWordIndex = Math.floor(Math.random() * tagWords.length)
+		const randomWord = tagWords.at(randomWordIndex)!
 		tags.add(randomWord)
 	}
 
 	const tagList = [...tags]
 	return tagList
+}
+
+function validateSortType(sortType: SortType | null | undefined): boolean {
+	if (sortType == null){
+		return true
+	} else if (validSortTypes.indexOf(sortType) == -1){
+		return false
+	}
+	return true
+}
+
+function validatePostType(postType: PostType | "ALL_POSTS" | null | undefined): boolean {
+	if (postType == null || postType == "ALL_POSTS"){
+		return true
+	} else if (validPostTypes.indexOf(postType) == -1){
+		return false
+	}
+	return true
+}
+
+function validateSearchQuery(searchQuery: string | null | undefined): boolean {
+	return true
+}
+
+function validateSearchPage(searchPage: any): boolean {
+	if (searchPage == null){
+		return true
+	} else {
+		searchPage = parseInt(searchPage)
+		if (Number.isNaN(searchPage) || searchPage < 1){
+			// Search pages can either be null or 1-inf
+			// A number > post count will return no rows anyway (with OFFSET)
+			return false
+		}
+		return true
+	}
 }
 
 async function createPost(req: Request, res: Response): Promise<void> {
@@ -96,7 +209,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 							.split(separatorRegex)
 							.slice(0, 4)
 		} else {
-			postTags = getRandomTagsFromTitle(postTitle)
+			postTags = getTagsFromString(postTitle)
 		}
 		const {rows} = await db.query(
 			// post_id DEFAULT SERIAL | post_date_created NOW() | post_like_count DEFAULT 0 | edited DEFAULT FALSE
@@ -210,7 +323,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 				.split(separatorRegex)
 				.slice(0, 4)
 		} else {
-			postTags = getRandomTagsFromTitle(postTitle)
+			postTags = getTagsFromString(postTitle)
 		}
 
 		// Update DB post content
@@ -268,7 +381,50 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 	}
 }
 
+async function getPosts(req: Request, res: Response): Promise<void> {
+	// Retrieves a set of posts based on query params
+	// @ts-ignore
+	const {sortType, postType, searchQuery, searchPage}: string = req.query
+	const receivedSearchParams = {
+		sortType, postType, searchQuery, searchPage
+	}
+	const searchParamValidators: PropertyValidatorType[] = [
+		validateSortType, validatePostType, validateSearchQuery, validateSearchPage
+	]
+
+	const [validProperties, invalidProperties] = validateProperties(receivedSearchParams, searchParamValidators)
+	if (invalidProperties.length > 0) {
+		// If there are some invalid search properties, respond with 400
+		res.status(400).json(
+			{
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": invalidProperties
+			}
+		)
+		return
+	}
+
+	const finalSearchParams: PostSearchParamType = {
+		"postType": postType 		|| defaultSearchParams.postType,
+		"sortType": sortType 		|| defaultSearchParams.sortType,
+		"searchQuery": searchQuery 	|| defaultSearchParams.searchQuery,
+		"searchPage": searchPage	|| defaultSearchParams.searchPage
+	}
+
+	const returnedPosts = await searchPosts(finalSearchParams)
+
+	res.status(200).json({
+		"actionResult": "SUCCESS",
+		"postIds": returnedPosts
+	})
+}
+
 const postRouter = Router()
+
+postRouter.get(
+	"/",
+	getPosts
+)
 
 postRouter.post(
 	"/",

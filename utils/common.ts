@@ -91,11 +91,33 @@ function stripAuthHeader(authHeader: string): string {
 	return authHeader
 }
 
+
+function validateProperties(properties: object, propertyValidators: PropertyValidatorType[]) {
+	// A generic property validating function
+	// Returns two arrays, valid and invalid properties
+	let validProperties: string[] = [],     // List of valid properties
+		invalidProperties: string[] = []    // List of invalid properties
+	const propertyNames = Object.keys(properties) // List of property names
+	propertyNames.forEach((propertyName: string, propertyIndex: number) => { // For each property, do
+		// @ts-ignore
+		const propertyValue = properties[propertyName] // Get property value from name
+		const propertyValidator: PropertyValidatorType = propertyValidators[propertyIndex] // Get corresponding validator
+		const validProperty = propertyValidator(propertyValue) // Get validation result (boolean)
+		if (validProperty) {
+			validProperties.push(propertyName) // Mark as valid property
+		} else {
+			invalidProperties.push(propertyName) // Mark as invalid property
+		}
+	})
+	return [validProperties, invalidProperties]
+}
+
 export {
 	baseURL,
 	PropertyValidatorType,
 	validateAuthToken,
 	validateRefreshToken,
 	getAuthenticatedUser,
-	stripAuthHeader
+	stripAuthHeader,
+	validateProperties
 }
