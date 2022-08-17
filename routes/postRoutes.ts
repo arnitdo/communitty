@@ -383,40 +383,46 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 
 async function getPosts(req: Request, res: Response): Promise<void> {
 	// Retrieves a set of posts based on query params
-	// @ts-ignore
-	const {sortType, postType, searchQuery, searchPage}: string = req.query
-	const receivedSearchParams = {
-		sortType, postType, searchQuery, searchPage
+	try {// @ts-ignore
+		const {sortType, postType, searchQuery, searchPage}: string = req.query
+		const receivedSearchParams = {
+			sortType, postType, searchQuery, searchPage
+		}
+		const searchParamValidators: PropertyValidatorType[] = [
+			validateSortType, validatePostType, validateSearchQuery, validateSearchPage
+		]
+
+		const [validProperties, invalidProperties] = validateProperties(receivedSearchParams, searchParamValidators)
+		if (invalidProperties.length > 0) {
+			// If there are some invalid search properties, respond with 400
+			res.status(400).json(
+				{
+					"actionResult": "ERR_INVALID_PROPERTIES",
+					"invalidProperties": invalidProperties
+				}
+			)
+			return
+		}
+
+		const finalSearchParams: PostSearchParamType = {
+			"postType": postType || defaultSearchParams.postType,
+			"sortType": sortType || defaultSearchParams.sortType,
+			"searchQuery": searchQuery || defaultSearchParams.searchQuery,
+			"searchPage": searchPage || defaultSearchParams.searchPage
+		}
+
+		const returnedPosts = await searchPosts(finalSearchParams)
+
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"post_ids": returnedPosts
+		})
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
 	}
-	const searchParamValidators: PropertyValidatorType[] = [
-		validateSortType, validatePostType, validateSearchQuery, validateSearchPage
-	]
-
-	const [validProperties, invalidProperties] = validateProperties(receivedSearchParams, searchParamValidators)
-	if (invalidProperties.length > 0) {
-		// If there are some invalid search properties, respond with 400
-		res.status(400).json(
-			{
-				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": invalidProperties
-			}
-		)
-		return
-	}
-
-	const finalSearchParams: PostSearchParamType = {
-		"postType": postType 		|| defaultSearchParams.postType,
-		"sortType": sortType 		|| defaultSearchParams.sortType,
-		"searchQuery": searchQuery 	|| defaultSearchParams.searchQuery,
-		"searchPage": searchPage	|| defaultSearchParams.searchPage
-	}
-
-	const returnedPosts = await searchPosts(finalSearchParams)
-
-	res.status(200).json({
-		"actionResult": "SUCCESS",
-		"postIds": returnedPosts
-	})
 }
 
 const postRouter = Router()
