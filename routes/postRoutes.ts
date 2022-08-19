@@ -11,14 +11,14 @@ const validPostTypes: PostType[] = ["TEXT_POST", "LINK_POST", "IMAGE_POST", "VID
 const validSortTypes: SortType[] = ["SORT_TOP", "SORT_HOT", "SORT_NEW"]
 
 type PostSearchParamType = {
-	sortType: SortType,							// Sort Type : Hot, New or Top
-	postType: PostType | "ALL_POSTS",			// Post Type : Text, Link, Image or Video
-	searchQuery: string | null | undefined,		// Search Query : null (all posts) or specific keywords
-	searchPage: number
+	sortType: SortType,							// Sort Type : Hot, New or Top							Default: Hot
+	postType: PostType | "ALL_POSTS",			// Post Type : Text, Link, Image or Video, or all posts	Default: All
+	searchQuery: string | null | undefined,		// Search Query : null (all posts) or specific keywords	Default: null
+	searchPage: number							// Paginated Search Results : Pages of 10 posts			Default: 1 (Posts 1 to 10)
 }
 
 const defaultSearchParams: PostSearchParamType = {
-	sortType: "SORT_NEW",
+	sortType: "SORT_HOT",
 	postType: "ALL_POSTS",
 	searchQuery: null,
 	searchPage: 1
@@ -34,10 +34,12 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 
 	if (searchQuery != null){
 		let searchTags = getTagsFromString(searchQuery)
+		searchClauses.push(" AND (")
 		searchTags.forEach((searchTag, idx) => {
-			searchClauses.push(" AND $" + (idx + 1) + " = ANY(post_tags)")
+			searchClauses.push(" $" + (idx + 1) + " = ANY(post_tags) OR")
 			queryParams.push(searchTag)
 		})
+		searchClauses.push(" FALSE)") // Boolean algebra, A || False -> A
 	}
 
 	if (postType != "ALL_POSTS"){
@@ -49,7 +51,7 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 
 	if (sortType == "SORT_HOT"){
 		searchClauses.push(
-			"AND (NOW() - post_modified_date) < INTERVAL '1 day'" // Hot posts = posts < 1 day old
+			" AND (NOW() - post_modified_date) < INTERVAL '1 day'" // Hot posts = posts < 1 day old
 		)
 	}
 
@@ -68,7 +70,7 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 	const pageOffset = ((searchPage - 1) * 10) // Using pages of 10 posts each
 
 	if (searchClauses.length > 0) {
-		baseQuery += " WHERE 1 = 1"
+		baseQuery += " WHERE TRUE" // Boolean algebra, TRUE && A -> A
 		searchClauses.forEach((searchClause) => {
 			baseQuery += searchClause
 		})
@@ -122,7 +124,7 @@ function getTagsFromString(tagString: string): string[] {
 }
 
 function validateSortType(sortType: SortType | null | undefined): boolean {
-	if (sortType == null){
+	if (sortType == null || sortType.trim() != ""){
 		return true
 	} else if (validSortTypes.indexOf(sortType) == -1){
 		return false
@@ -131,7 +133,7 @@ function validateSortType(sortType: SortType | null | undefined): boolean {
 }
 
 function validatePostType(postType: PostType | "ALL_POSTS" | null | undefined): boolean {
-	if (postType == null || postType == "ALL_POSTS"){
+	if (postType == null || postType.trim() != "" || postType == "ALL_POSTS"){
 		return true
 	} else if (validPostTypes.indexOf(postType) == -1){
 		return false
@@ -140,7 +142,10 @@ function validatePostType(postType: PostType | "ALL_POSTS" | null | undefined): 
 }
 
 function validateSearchQuery(searchQuery: string | null | undefined): boolean {
-	return true
+	if (searchQuery == null || searchQuery.trim() != ""){
+		return true
+	}
+	return false
 }
 
 function validateSearchPage(searchPage: any): boolean {
