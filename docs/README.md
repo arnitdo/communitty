@@ -1,6 +1,8 @@
 # Communitty
 #### An open-source social media app created with ExpressJS and ReactJS.
 
+[![Build](https://github.com/arnitdo/communitty/actions/workflows/build_test.yml/badge.svg?branch=dev)](https://github.com/arnitdo/communitty/actions/workflows/build_test.yml)
+
 ## For users : 
 
 You might've stumbled upon this repository searching for the actual website. [Click here to be whisked away!](https://communitty.herokuapp.com). If you are a developer, look below!
