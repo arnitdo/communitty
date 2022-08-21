@@ -77,13 +77,13 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 	// Returns true for respective property if user already exists with same username or email
 	// Else returns [false, false]
 	let {rows} = await db.query(
-		"SELECT * FROM users WHERE username = $1",
+		"SELECT * FROM accounts WHERE username = $1",
 		[userName]
 	)
 	const isDuplicateUserName: boolean = (rows.length != 0);
 
 	({rows} = await db.query(
-		"SELECT * FROM users WHERE email = $1",
+		"SELECT * FROM accounts WHERE email = $1",
 		[userMail]
 	))
 
@@ -148,11 +148,11 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 				const passHash: string = await hash(userPass, 10)
 				const verificationToken = generateVerificationToken()
 				await db.query(
-					"INSERT INTO users VALUES ($1, $2, $3, $4, NOW(), DEFAULT);",
+					"INSERT INTO accounts VALUES ($1, $2, $3, $4, NOW(), DEFAULT);",
 					[userName, userMail, passHash, fullName]
 				)
 				await db.query(
-					"INSERT INTO inactive_users VALUES ($1, $2);",
+					"INSERT INTO inactive_accounts VALUES ($1, $2);",
 					[userName, verificationToken]
 				)
 				// Send verification mail
@@ -177,13 +177,13 @@ async function userActivate(req: Request, res: Response): Promise<void> {
 		const {userName, activationToken} = req.body
 		await db.query("BEGIN;")
 		const {rows} = await db.query(
-			"DELETE FROM inactive_users WHERE username = $1 AND activationToken = $2 RETURNING *",
+			"DELETE FROM inactive_accounts WHERE username = $1 AND activationToken = $2 RETURNING *",
 			[userName, activationToken]
 		)
 		if (rows.length > 0) {
 			// Activate our user
 			await db.query(
-				"UPDATE users SET activated = True WHERE username = $1",
+				"UPDATE accounts SET activated = TRUE WHERE username = $1",
 				[userName]
 			)
 			res.status(200).json({
@@ -209,7 +209,7 @@ async function userLogin(req: Request, res: Response): Promise<void> {
 	try {
 		const {userName, userPass} = req.body
 		const {rows} = await db.query(
-			"SELECT username, password FROM users WHERE username = $1",
+			"SELECT username, password FROM accounts WHERE username = $1",
 			[userName]
 		)
 

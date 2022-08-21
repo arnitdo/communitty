@@ -1,8 +1,11 @@
 import {db} from '../utils/db'
 import {Request, Response, Router} from 'express'
-import {getAuthenticatedUser, PropertyValidatorType, validateProperties} from "../utils/common"
+import {getAuthenticatedUser, normalizeObjectKeys, PropertyValidatorType, validateProperties} from "../utils/common"
 import * as url from 'node:url'
 import * as middleware from "../utils/middleware"
+
+// IMPORTANT: Comment router is managed through the post router
+import {commentRouter} from "./commentRoutes";
 
 type PostType = "TEXT_POST"	| "LINK_POST" 	| "IMAGE_POST"	| "VIDEO_POST"
 type SortType = "SORT_TOP"	| "SORT_HOT"	| "SORT_NEW"
@@ -132,6 +135,14 @@ function validateSortType(sortType: SortType | null | undefined): boolean {
 	return true
 }
 
+function validatePostId(postId: string): boolean {
+	const numericPostId = parseInt(postId)
+	if (Number.isNaN(numericPostId)){
+		return false
+	}
+	return true
+}
+
 function validatePostType(postType: PostType | "ALL_POSTS" | null | undefined): boolean {
 	if (postType == null || postType.trim() != "" || postType == "ALL_POSTS"){
 		return true
@@ -244,14 +255,6 @@ async function getPost(req: Request, res: Response): Promise<void> {
 	// Route /posts/:postId/
 	try {
 		const {postId} = req.params
-		const numericPostId = parseInt(postId)
-		if (Number.isNaN(numericPostId)) {
-			res.status(400).json({
-				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": ["postId"]
-			})
-			return
-		}
 		const {rows} = await db.query(
 			"SELECT * FROM posts WHERE post_id = $1",
 			[postId]
@@ -261,9 +264,10 @@ async function getPost(req: Request, res: Response): Promise<void> {
 			res.sendStatus(404)
 		} else {
 			const postData = rows[0]
+			const normalizedPostData = normalizeObjectKeys(postData, ["post_modified_date"])
 			res.status(200).json({
 				"actionResult": "SUCCESS",
-				"postData": postData
+				"postData": normalizedPostData
 			})
 		}
 	} catch (err) {
@@ -374,12 +378,13 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 			"DELETE FROM comments WHERE comment_parent_post = $1;",
 			[postId]
 		)
-
+		await db.query("COMMIT;")
 		res.status(200).json({
 			"actionResult": "SUCCESS"
 		})
 	} catch (err){
 		console.error(err);
+		await db.query("ROLLBACK;")
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
 		})
@@ -458,6 +463,7 @@ postRouter.put(
 	[
 		middleware.needsToken,
 		middleware.needsURLParams("postId"),
+		middleware.needsValidPost,
 		middleware.needsPostAuthor,
 		middleware.needsBodyParams("postTitle", "postBody") // See above ^
 	],
@@ -469,9 +475,19 @@ postRouter.delete(
 	[
 		middleware.needsToken,
 		middleware.needsURLParams("postId"),
+		middleware.needsValidPost,
 		middleware.needsPostAuthor
 	],
 	deletePost
+)
+
+postRouter.use(
+	"/:postId/comments/",
+	[
+		middleware.needsURLParams("postId"),
+		middleware.needsValidPost
+	],
+	commentRouter
 )
 
 export {

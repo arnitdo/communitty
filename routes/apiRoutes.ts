@@ -3,6 +3,7 @@ import {rateLimit} from 'express-rate-limit'
 
 import {authRouter} from "./authRoutes";
 import {postRouter} from "./postRoutes";
+import {commentRouter} from "./commentRoutes";
 
 function apiNotFound(req: Request, res: Response){
 	// That API route does not exist
@@ -32,8 +33,9 @@ const rateLimiter = rateLimit({
 
 apiRouter.use(rateLimiter)
 
-apiRouter.use("/auth/", authRouter)		// -> /api/auth/
-apiRouter.use("/posts/", postRouter)	// -> /api/posts/
+apiRouter.use("/auth/", authRouter)			// -> /api/auth/
+apiRouter.use("/posts/", postRouter)		// -> /api/posts/
+apiRouter.use("/comments/", commentRouter)	// -> /api/comments/
 
 apiRouter.all("*", apiNotFound)	// -> All Methods /api/*
 

@@ -1,6 +1,6 @@
 import {Request, Response} from "express";
 import {db} from "./db";
-import {validateAuthToken, getAuthenticatedUser, stripAuthHeader} from "./common";
+import {validateAuthToken, getAuthenticatedUser, stripAuthHeader, validatePostId, validateCommentId} from "./common";
 
 type MiddlewareType = (req: Request, res: Response, next: (...args: any[]) => any) => void
 
@@ -96,7 +96,7 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 	try {
 		const currentUser = getAuthenticatedUser(req)
 		const {rows} = await db.query(
-			"SELECT activated FROM users WHERE username = $1",
+			"SELECT activated FROM accounts WHERE username = $1",
 			[currentUser]
 		)
 		if (rows.length == 0){
@@ -125,30 +125,12 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
 	const {postId} = req.params
 
-	const numericPostId = parseInt(postId)
-	if (Number.isNaN(numericPostId)) {
-		res.status(400).json({
-			"actionResult": "ERR_INVALID_PROPERTIES",
-			"invalidProperties": ["postId"]
-		})
-		return
-	}
-
 	const currentUser = getAuthenticatedUser(req)
 
 	const {rows} = await db.query(
 		"SELECT post_author FROM posts WHERE post_id = $1",
 		[postId]
 	)
-
-	if (rows.length == 0){
-		// Post doesn't exist, if it were to, there would be a post author
-		res.status(400).json({
-			"actionResult": "ERR_INVALID_PROPERTIES",
-			"invalidProperties": ["postId"]
-		})
-		return
-	}
 
 	const postAuthor = rows[0].post_author
 
@@ -163,10 +145,40 @@ async function needsPostAuthor(req: Request, res: Response, next: (...args: any[
 	next()
 }
 
+async function needsValidPost(req: Request, res: Response, next: () => any): Promise<void> {
+	// Use needsURLParams("postId") *before* this
+	const {postId} = req.params
+	const isValidPostId = await validatePostId(postId)
+	if (isValidPostId == false) {
+		res.status(404).json({
+			"actionResult": "ERR_INVALID_PROPERTIES",
+			"invalidProperties": ["postId"]
+		})
+		return
+	}
+	next()
+}
+
+async function needsValidComment(req: Request, res: Response, next: () => any): Promise<void> {
+	// Use needsURLParams("commentId") *before* this
+	const {commentId} = req.params
+	const isValidCommentId = await validateCommentId(commentId)
+	if (isValidCommentId == false) {
+		res.status(404).json({
+			"actionResult": "ERR_INVALID_PROPERTIES",
+			"invalidProperties": ["postId"]
+		})
+		return
+	}
+	next()
+}
+
 export {
 	needsToken,
 	needsBodyParams,
 	needsURLParams,
 	needsActivatedUser,
-	needsPostAuthor
+	needsPostAuthor,
+	needsValidPost,
+	needsValidComment
 }

@@ -1,5 +1,6 @@
-import {Request, Response} from "express";
+import {Request} from "express";
 import {JwtPayload, TokenExpiredError, verify} from "jsonwebtoken";
+import {db} from "./db"
 
 type PropertyValidatorType = (property: any) => boolean
 
@@ -112,6 +113,88 @@ function validateProperties(properties: object, propertyValidators: PropertyVali
 	return [validProperties, invalidProperties]
 }
 
+async function validatePostId(postId: string | null): Promise<boolean> {
+	if (postId == null){
+		return false
+	}
+	const numericPostId = parseInt(postId)
+	if (Number.isNaN(numericPostId)){
+		return false
+	}
+
+	const {rows} = await db.query(
+		"SELECT 1 FROM posts WHERE post_id = $1",
+		[postId]
+	)
+	if (rows.length == 0){
+		return false
+	}
+	return true
+}
+
+async function validateCommentId(commentId: string | null): Promise<boolean> {
+	if (commentId == null){
+		return false
+	}
+
+	const numericCommentId = parseInt(commentId)
+	if (Number.isNaN(numericCommentId)){
+		return false
+	}
+
+	const {rows} = await db.query(
+		"SELECT 1 FROM comments WHERE comment_id = $1",
+		[numericCommentId]
+	)
+
+	if (rows.length == 0){
+		return false
+	}
+	return true
+}
+
+function normalizeObjectKeys(obj: any, skipValueKeys?: string[]): Object {
+	// skipValueKeys: optional array of parameters copy as-is
+	// use for compound objects such as dates
+	// Converts snake_case_props to camelCaseProps
+	const propKeys = Object.keys(obj)
+	let clonedObject = Object.create({})
+	propKeys.forEach((propKey) => {
+		const keyTokens = propKey.split('_')
+		const firstToken = keyTokens[0]
+		const nextKeyTokens = keyTokens.slice(1) // Get the second token onwards
+		const upperKeyTokens = nextKeyTokens.map((keyToken) => {
+			keyToken = keyToken.toLowerCase()
+			const firstChar = keyToken
+				.charAt(0)
+				.toUpperCase()
+			const restChars = keyToken.slice(1) // Get second character onwards in string
+			return firstChar + restChars
+		})
+		const finalPropKey = firstToken.concat(...upperKeyTokens)
+		const currentValue = obj[propKey]
+		if (skipValueKeys){
+			if (skipValueKeys.indexOf(propKey) != -1){
+				clonedObject[finalPropKey] = currentValue
+				return
+			}
+		}
+		// copy nulls and undefined values as-are
+		if (currentValue == null){
+			clonedObject[finalPropKey] = currentValue
+			return
+		}
+		if (typeof currentValue == 'object'){
+			// Recursively process nested objects within the main object
+			clonedObject[finalPropKey] = normalizeObjectKeys(currentValue)
+		} else {
+			// Or simply copy the value if it is a primitive type
+			clonedObject[finalPropKey] = currentValue
+		}
+	})
+	return clonedObject
+}
+
 export {
 	baseURL,
 	PropertyValidatorType,
@@ -119,5 +202,8 @@ export {
 	validateRefreshToken,
 	getAuthenticatedUser,
 	stripAuthHeader,
-	validateProperties
+	validateProperties,
+	validatePostId,
+	validateCommentId,
+	normalizeObjectKeys
 }
