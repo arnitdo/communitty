@@ -57,7 +57,7 @@ function validateRefreshToken(refreshToken: string, userName: string): [boolean,
 }
 
 function baseURL(): string {
-	if (process.env.NODE_ENV === "development" || process.env.NODE_ENV == undefined) {
+	if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == undefined) {
 		return "http://localhost:8800"
 	} else {
 		return "https://communitty.herokuapp.com"
@@ -155,7 +155,7 @@ async function validateCommentId(commentId: string | null): Promise<boolean> {
 
 function normalizeObjectKeys(obj: any, skipValueKeys?: string[]): Object {
 	// skipValueKeys: optional array of parameters copy as-is
-	// use for compound objects such as dates
+	// 				  use for compound objects such as dates
 	// Converts snake_case_props to camelCaseProps
 	const propKeys = Object.keys(obj)
 	let clonedObject = Object.create({})

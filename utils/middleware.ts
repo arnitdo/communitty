@@ -123,6 +123,7 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 }
 
 async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
+	// Use *after* needsValidPost middleware
 	const {postId} = req.params
 
 	const currentUser = getAuthenticatedUser(req)

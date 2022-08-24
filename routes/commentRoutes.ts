@@ -82,6 +82,7 @@ async function createComment(req: Request, res: Response) {
 
 		const commentAuthor = getAuthenticatedUser(req)
 
+		await db.query("BEGIN;")
 		const {rows} = await db.query(
 			"INSERT INTO comments VALUES (DEFAULT, $1, $2, $3, $4, DEFAULT, $5) RETURNING comment_id",
 			[commentAuthor, postId, commentType, commentBody, commentParent]
@@ -201,10 +202,10 @@ const commentRouter = Router({
  * 		- POST /:
  * 			- Creates a comment on specific post
  *	- /api/comments/
- * 		- GET /:commentId:
+ * 		- GET /:commentId/:
  * 			- Returns the comment data of specific comment
  * 		- POST /:
- * 			- Creates a
+ * 			- Creates a comment with the specified postId as the parent post
  */
 
 commentRouter.post(

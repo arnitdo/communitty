@@ -117,7 +117,7 @@ function getTagsFromString(tagString: string): string[] {
 	}
 
 	while (tags.size < 4) {
-		const randomWordIndex = Math.floor(Math.random() * tagWords.length)
+		const randomWordIndex = Math.floor((Math.random() * tagWords.length) % tagWords.length)
 		const randomWord = tagWords.at(randomWordIndex)!
 		tags.add(randomWord)
 	}
@@ -130,14 +130,6 @@ function validateSortType(sortType: SortType | null | undefined): boolean {
 	if (sortType == null || sortType.trim() != ""){
 		return true
 	} else if (validSortTypes.indexOf(sortType) == -1){
-		return false
-	}
-	return true
-}
-
-function validatePostId(postId: string): boolean {
-	const numericPostId = parseInt(postId)
-	if (Number.isNaN(numericPostId)){
 		return false
 	}
 	return true

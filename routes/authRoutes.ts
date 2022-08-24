@@ -77,17 +77,17 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 	// Returns true for respective property if user already exists with same username or email
 	// Else returns [false, false]
 	let {rows} = await db.query(
-		"SELECT * FROM accounts WHERE username = $1",
+		"SELECT 1 FROM accounts WHERE username = $1",
 		[userName]
 	)
-	const isDuplicateUserName: boolean = (rows.length != 0);
+	const isDuplicateUserName: boolean = (rows.length == 1);
 
 	({rows} = await db.query(
 		"SELECT * FROM accounts WHERE email = $1",
 		[userMail]
 	))
 
-	const isDuplicateUserMail: boolean = (rows.length != 0)
+	const isDuplicateUserMail: boolean = (rows.length == 1)
 
 	return [isDuplicateUserName, isDuplicateUserMail]
 }
@@ -130,7 +130,6 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 				}
 			)
 		} else {
-			await db.query("BEGIN;") // Begin DB Transaction
 			const [isDuplicateUserName, isDuplicateUserMail] = await isDuplicateUser(userName, userMail)
 			if (isDuplicateUserName || isDuplicateUserMail) {
 				let duplicateProperties: string[] = []
@@ -147,6 +146,7 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 			} else {
 				const passHash: string = await hash(userPass, 10)
 				const verificationToken = generateVerificationToken()
+				await db.query("BEGIN;") // Begin DB Transaction
 				await db.query(
 					"INSERT INTO accounts VALUES ($1, $2, $3, $4, NOW(), DEFAULT);",
 					[userName, userMail, passHash, fullName]
@@ -180,28 +180,31 @@ async function userActivate(req: Request, res: Response): Promise<void> {
 			"DELETE FROM inactive_accounts WHERE username = $1 AND activationToken = $2 RETURNING *",
 			[userName, activationToken]
 		)
-		if (rows.length > 0) {
-			// Activate our user
-			await db.query(
-				"UPDATE accounts SET activated = TRUE WHERE username = $1",
-				[userName]
-			)
-			res.status(200).json({
-				"actionResult": "SUCCESS"
-			})
-		} else {
+		if (rows.length == 0) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["userName", "activationToken"]
 			})
+			await db.query("ROLLBACK;")
+			return
 		}
+
+		await db.query(
+			"UPDATE accounts SET activated = TRUE WHERE username = $1",
+			[userName]
+		)
+
 		await db.query("COMMIT;")
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+
 	} catch (err) {
 		console.error(err)
+		await db.query("ROLLBACK;")
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR",
 		})
-		await db.query("ROLLBACK;")
 	}
 }
 
@@ -310,7 +313,7 @@ authRouter.post(
 )
 authRouter.post(
 	"/user_login",
-	middleware.needsBodyParams("userName",  "userPass"),
+	middleware.needsBodyParams("userName", "userPass"),
 	userLogin
 )
 
