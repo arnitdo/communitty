@@ -167,7 +167,6 @@ function validateSearchPage(searchPage: any): boolean {
 
 async function createPost(req: Request, res: Response): Promise<void> {
 	try {
-		await db.query("BEGIN;")
 		let {postTitle, postBody} = req.body;
 		// Get the post's author from the current authenticated user's token
 		const postAuthor = getAuthenticatedUser(req)
@@ -219,6 +218,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 		} else {
 			postTags = getTagsFromString(postTitle)
 		}
+		await db.query("BEGIN;")
 		const {rows} = await db.query(
 			// post_id DEFAULT SERIAL | post_date_created NOW() | post_like_count DEFAULT 0 | edited DEFAULT FALSE
 			"INSERT INTO posts VALUES (DEFAULT, $1, $2, $3, $4, $5, NOW(), DEFAULT, DEFAULT) RETURNING post_id;",
@@ -357,7 +357,7 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 		const {postId} = req.params
 		/*
 			User validity (i.e. post author = request maker) will be verified by needsPostAuthor middleware
-			Post validity (i.e. correct post ID) will be verified by needsPostAuthor middleware (too!)
+			Post validity (i.e. correct post ID) will be verified by needsValidPost middleware
 		 */
 
 		await db.query(
