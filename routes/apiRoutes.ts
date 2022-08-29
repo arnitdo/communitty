@@ -31,7 +31,7 @@ const rateLimiter = rateLimit({
 	}
 })
 
-apiRouter.use(rateLimiter)
+apiRouter.use(rateLimiter)					// Ratelimit all API routes
 
 apiRouter.use("/auth/", authRouter)			// -> /api/auth/
 apiRouter.use("/posts/", postRouter)		// -> /api/posts/

@@ -274,7 +274,6 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 	// PostId will be passed as URL Param
 	// Route /posts/:postId/delete/
 	try {
-		await db.query("BEGIN;")
 		const {postId} = req.params // postId will be validated by `needsPostAuthor` middleware
 		const {postTitle, postBody} = req.body
 
@@ -328,6 +327,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 		}
 
 		// Update DB post content
+		await db.query("BEGIN;")
 		await db.query(
 			"UPDATE posts " +
 			"SET post_title = $1, " +
