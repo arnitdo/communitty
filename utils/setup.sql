@@ -2,7 +2,7 @@
 -- This file should only be run once, in case of cloning the production database schema
 -- onto your local development machine
 -- The production database *must* be exactly reproducible by this setup file
--- For high access contributors, manual database maintenance can be performed via heroku secret credentials
+-- For high access contributors, manual database maintenance can be performed via credentials
 -- Note that this file does not insert any data into the database, it simply props up the necessary relation schema
 
 CREATE TABLE IF NOT EXISTS accounts (
