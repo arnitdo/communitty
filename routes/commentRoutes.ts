@@ -84,7 +84,7 @@ async function createComment(req: Request, res: Response) {
 
 		await db.query("BEGIN;")
 		const {rows} = await db.query(
-			"INSERT INTO comments VALUES (DEFAULT, $1, $2, $3, $4, DEFAULT, $5) RETURNING comment_id",
+			"INSERT INTO comments VALUES (DEFAULT, $1, $2, $3, $4, DEFAULT, $5, NOW(), DEFAULT) RETURNING comment_id",
 			[commentAuthor, postId, commentType, commentBody, commentParent]
 		)
 
@@ -126,7 +126,7 @@ async function getPostComments(req: Request, res: Response): Promise<void> {
 			childComments.map(async (childComment) => {
 				return {
 					"commentId": childComment,
-					"children": await getRecursiveChildComments(childComment)
+					"childComments": await getRecursiveChildComments(childComment)
 				}
 			})
 		)
@@ -167,15 +167,11 @@ async function getComment(req: Request, res: Response): Promise<void> {
 			"SELECT * FROM comments WHERE comment_id = $1",
 			[commentId]
 		)
-		if (rows.length == 0){
-			res.status(404).json({
-				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": ["commentId"]
-			})
-			return
-		}
+
+		const childComments = await getDirectChildComments(commentId)
 		const commentData = rows[0]
-		const normalizedCommentData = normalizeObjectKeys(commentData)
+		let normalizedCommentData = normalizeObjectKeys(commentData, ["comment_modified_date"])
+		normalizedCommentData["childComments"] = childComments
 		res.status(200).json({
 			"actionResult": "SUCCESS",
 			"commentData": normalizedCommentData
@@ -188,6 +184,52 @@ async function getComment(req: Request, res: Response): Promise<void> {
 	}
 }
 
+async function updateComment(req: Request, res: Response): Promise<void> {
+	try {
+		// Use this with the following middlewares -
+		// needsValidComment, needsCommentAuthor
+		const {commentId} = req.params		// These parameters are guaranteed with middleware
+		const {commentBody} = req.body
+
+		const {postId} = req.params			// :postId may not exist
+		if (postId){
+			// Validate the comment & comment parent match if postId is parent
+			const {rows} = await db.query(
+				"SELECT 1 FROM comments WHERE comment_id = $1 AND comment_parent_post = $2",
+				[commentId, postId]
+			)
+
+			if (rows.length == 0){
+				res.status(400).json({
+					"actionResult": "ERR_INVALID_PROPERTIES",
+					"invalidProperties": ["commentId", "postId"]
+				})
+
+				return
+			}
+		}
+
+		await db.query("BEGIN;")
+		await db.query(
+			"UPDATE comments " +
+			"SET comment_body = $1, " +
+			"comment_modified_date = NOW(), " +
+			"comment_edited = TRUE " +
+			"WHERE comment_id = $2;",
+			[commentBody, commentId]
+		)
+
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err){
+		console.error(err)
+		await db.query("ROLLBACK;")
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
 // See -
 // https://stackoverflow.com/questions/32140273/nested-routes-in-express-where-a-parent-route-includes-a-param
 // {mergeParams: true} allows parent routers to pass URLParams to child routers
@@ -197,15 +239,23 @@ const commentRouter = Router({
 
 /* Note that the commentRouter is mounted on two paths,
  *	- /api/posts/:postId/comments/
- * 		-  GET /:
+ * 		- GET /:
  * 			- Returns comment tree on specific post
+ * 		- GET /:commentId/:
+ * 			- Verifies the parent validity of the post and returns the comment data of the specific comment
  * 		- POST /:
- * 			- Creates a comment on specific post
+ * 			- Creates a comment on specific post + verifies parent post validity
+ * 		- PUT /:commentId/:
+ * 			- Updates the specific comment
  *	- /api/comments/
+ * 		- GET /:
+ * 			- Errors due to incorrect route (see above)
  * 		- GET /:commentId/:
  * 			- Returns the comment data of specific comment
  * 		- POST /:
- * 			- Creates a comment with the specified postId as the parent post
+ * 			- Creates a comment with the specified postId (body param) as the parent post
+ * 		- PUT /:commentId/:
+ * 			- Updates the specific comment
  */
 
 commentRouter.post(
@@ -230,6 +280,18 @@ commentRouter.get(
 		middleware.needsValidComment
 	],
 	getComment
+)
+
+commentRouter.put(
+	"/:commentId/",
+	[
+		middleware.needsToken,
+		middleware.needsURLParams("commentId"),
+		middleware.needsValidComment,
+		middleware.needsCommentAuthor,
+		middleware.needsBodyParams("commentBody")
+	],
+	updateComment
 )
 
 export {

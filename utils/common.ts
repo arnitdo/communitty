@@ -153,7 +153,7 @@ async function validateCommentId(commentId: string | null): Promise<boolean> {
 	return true
 }
 
-function normalizeObjectKeys(obj: any, skipValueKeys?: string[]): Object {
+function normalizeObjectKeys(obj: any, skipValueKeys?: string[]): any {
 	// skipValueKeys: optional array of parameters copy as-is
 	// 				  use for compound objects such as dates
 	// Converts snake_case_props to camelCaseProps
