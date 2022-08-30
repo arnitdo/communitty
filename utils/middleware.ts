@@ -122,30 +122,6 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 	}
 }
 
-async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
-	// Use *after* needsValidPost middleware
-	const {postId} = req.params
-
-	const currentUser = getAuthenticatedUser(req)
-
-	const {rows} = await db.query(
-		"SELECT post_author FROM posts WHERE post_id = $1",
-		[postId]
-	)
-
-	const postAuthor = rows[0].post_author
-
-	if (postAuthor != currentUser){
-		// You can't manage someone else's posts!
-		res.status(400).json({
-			"actionResult": "ERR_INSUFFICIENT_PERMS"
-		})
-		return
-	}
-
-	next()
-}
-
 async function needsValidPost(req: Request, res: Response, next: () => any): Promise<void> {
 	// Use needsURLParams("postId") *before* this
 	const {postId} = req.params
@@ -174,12 +150,64 @@ async function needsValidComment(req: Request, res: Response, next: () => any): 
 	next()
 }
 
+async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
+	// Use *after* needsValidPost middleware
+	const {postId} = req.params
+
+	const currentUser = getAuthenticatedUser(req)
+
+	const {rows} = await db.query(
+		"SELECT post_author FROM posts WHERE post_id = $1",
+		[postId]
+	)
+
+	const postAuthor = rows[0].post_author
+
+	if (postAuthor != currentUser){
+		// You can't manage someone else's posts!
+		res.status(400).json({
+			"actionResult": "ERR_INSUFFICIENT_PERMS"
+		})
+		return
+	}
+
+	next()
+}
+
+async function needsCommentAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
+	/*
+		Use after *needsValidPost* middleware
+		And 	  *needsValidComment* middleware
+	 */
+	const {commentId} = req.params
+
+	const currentUser = getAuthenticatedUser(req)
+
+	const {rows} = await db.query(
+		"SELECT comment_author FROM comments WHERE comment_id = $1",
+		[commentId]
+	)
+
+	const commentAuthor = rows[0].comment_author
+
+	if (commentAuthor != currentUser){
+		// You can't manage someone else's posts!
+		res.status(400).json({
+			"actionResult": "ERR_INSUFFICIENT_PERMS"
+		})
+		return
+	}
+
+	next()
+}
+
 export {
 	needsToken,
 	needsBodyParams,
 	needsURLParams,
 	needsActivatedUser,
-	needsPostAuthor,
 	needsValidPost,
-	needsValidComment
+	needsValidComment,
+	needsPostAuthor,
+	needsCommentAuthor
 }
