@@ -1,0 +1,82 @@
+{
+	"openapi": "3.0.3",
+	"info": {
+		"title": "Communitty API Documentation",
+		"description": "This document aims to provide an in-depth guide to consuming communitty's own API",
+		"version": "1.0.0"
+	},
+	"servers": [
+		{
+			"url": "https://communitty.onrender.com/api/",
+			"description": "Production communitty API Server"
+		},
+		{
+			"url": "http://localhost:8800/api/",
+			"description": "Local development communitty API Server"
+		}
+	],
+	"tags": [
+		{
+			"name": "Auth",
+			"description": "Authentication and Verification routes"
+		}
+	],
+	"components": {
+		"schemas": {
+			"UserSignup": {
+				"properties": {
+					"fullName": {
+						"type": "string",
+						"description": "The full display name of the user"
+					},
+					"userName": {
+						"type": "string",
+						"description": "The username of the user"
+					},
+					"userPass": {
+						"type": "string",
+						"description": "The password of the user.\nMust have one uppercase, one number and one symbol with a minimum of eight characters"
+					},
+					"userMail": {
+						"type": "string",
+						"description": "The email address of the user.\nMust be a valid email address for verification"
+					}
+				}
+			}
+		}
+	},
+	"paths": {
+		"/auth/signup": {
+			"post": {
+				"tags": [
+					"Auth"
+				],
+				"summary": "Creates a user using the specified credentials",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserSignup"
+							},
+							"example": {
+								"fullName": "John Doe",
+								"userName": "john_doe_573",
+								"userMail": "john.doe@example.com",
+								"userPass": "Pass@123"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "`SUCCESS`: User was created successfully. Manual verification is required by the user"
+					},
+					"400": {
+						"description": "`ERR_MISSING_BODY_PARAMS`: One or more body parameters are missing. See field `missingProperties`.<br><br>`ERR_DUPLICATE_PROPERTIES`: User already exists with either same username or email. See field `duplicateProperties`.<br><br>`ERR_INVALID_PROPERTIES`: Properties do not fit the specific criteria, such as invalid characters in name or username. See field `invalidProperties`"
+					}
+				}
+			}
+		}
+	}
+}

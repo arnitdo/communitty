@@ -1,9 +1,17 @@
 import {Request, Response, Router} from 'express'
 import {rateLimit} from 'express-rate-limit'
 
+import {serve as serveDocs, setup as setupDocs} from 'swagger-ui-express'
+
+import * as swaggerDocument from '../docs/swagger.json';
+
 import {authRouter} from "./authRoutes";
 import {postRouter} from "./postRoutes";
 import {commentRouter} from "./commentRoutes";
+
+function sendSwaggerDocument(req: Request, res: Response){
+	res.status(200).json(swaggerDocument)
+}
 
 function apiHeartbeat(req: Request, res: Response){
 	// Returns 200 OK for server heartbeat
@@ -56,14 +64,26 @@ const requestRateLimiter = rateLimit({
 	}
 })
 
+const swaggerOptions = {
+	swaggerOptions: {
+		url: "/api/docs/swagger.json"
+	}
+}
+
 apiRouter.use(actionRateLimiter)					// Ratelimit all API routes
 apiRouter.use(requestRateLimiter)
+
+apiRouter.use("/docs/", serveDocs)
 
 apiRouter.use("/auth/", authRouter)			// -> /api/auth/
 apiRouter.use("/posts/", postRouter)		// -> /api/posts/
 apiRouter.use("/comments/", commentRouter)	// -> /api/comments/
 
 apiRouter.get("/heartbeat/", apiHeartbeat)
+
+// Serve swagger documentation
+apiRouter.get("/docs/", setupDocs(swaggerDocument))
+apiRouter.get("/docs/swagger.json", sendSwaggerDocument)
 apiRouter.all("*", apiNotFound)	// -> All Methods /api/*
 
 export {
