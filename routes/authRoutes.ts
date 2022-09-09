@@ -302,17 +302,17 @@ async function userTokenRefresh(req: Request, res: Response): Promise<void> {
 const authRouter = Router()
 
 authRouter.post(
-	"/user_signup",
+	"/signup",
 	middleware.needsBodyParams("userName", "userMail", "userPass", "fullName"),
 	userSignup
 )
 authRouter.post(
-	"/user_activate",
+	"/activate",
 	middleware.needsBodyParams("userName", "activationToken"),
 	userActivate
 )
 authRouter.post(
-	"/user_login",
+	"/login",
 	middleware.needsBodyParams("userName", "userPass"),
 	userLogin
 )

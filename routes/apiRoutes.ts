@@ -5,6 +5,11 @@ import {authRouter} from "./authRoutes";
 import {postRouter} from "./postRoutes";
 import {commentRouter} from "./commentRoutes";
 
+function apiHeartbeat(req: Request, res: Response){
+	// Returns 200 OK for server heartbeat
+	res.sendStatus(200)
+}
+
 function apiNotFound(req: Request, res: Response){
 	// That API route does not exist
 	res.sendStatus(404)
@@ -12,9 +17,10 @@ function apiNotFound(req: Request, res: Response){
 
 const apiRouter = Router()
 
-const rateLimiter = rateLimit({
+// Rate limiter for non-GET requests
+const actionRateLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000, // 5 Minutes
-	max: 10, // 100 non-GET requests per IP / 5 minutes
+	max: 10, // 10 non-GET requests per IP / 5 minutes
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: {
@@ -31,12 +37,33 @@ const rateLimiter = rateLimit({
 	}
 })
 
-apiRouter.use(rateLimiter)					// Ratelimit all API routes
+// Rate limiter for GET requests
+const requestRateLimiter = rateLimit({
+	windowMs: 5 * 60 * 1000, // 5 Minutes
+	max: 100,				 // Allow 100 requests / 5 min
+	standardHeaders: true,
+	legacyHeaders: false,
+	statusCode: 429,
+	message: {
+		"actionResult": "ERR_RATE_LIMITED"
+	},
+	skip: (req: Request, res: Response) => {
+		if (req.method != "GET") {
+			return true
+		} else {
+			return false
+		}
+	}
+})
+
+apiRouter.use(actionRateLimiter)					// Ratelimit all API routes
+apiRouter.use(requestRateLimiter)
 
 apiRouter.use("/auth/", authRouter)			// -> /api/auth/
 apiRouter.use("/posts/", postRouter)		// -> /api/posts/
 apiRouter.use("/comments/", commentRouter)	// -> /api/comments/
 
+apiRouter.get("/heartbeat/", apiHeartbeat)
 apiRouter.all("*", apiNotFound)	// -> All Methods /api/*
 
 export {

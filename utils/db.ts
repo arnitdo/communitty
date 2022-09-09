@@ -14,9 +14,14 @@ const db: pg.Client = new pg.Client({
 	connectionString: process.env.DATABASE_URL
 });
 
-(async () => {
-	await db.connect();
-})()
+try {
+	(async () => {
+		await db.connect();
+	})()
+} catch (err) {
+	console.error("Error connecting to database : ", err)
+	process.exit(0)
+}
 
 // Finally, export database connection
 export {db}
