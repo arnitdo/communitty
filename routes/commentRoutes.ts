@@ -8,7 +8,7 @@ const validCommentTypes = ["ROOT", "REPLY"]
 async function getDirectChildComments(commentId: string): Promise<string[]> {
 	// returns comment IDs of all direct children of a specific comment
 	const {rows} = await db.query(
-		"SELECT comment_id FROM comments WHERE comment_reply_parent = $1",
+		"SELECT * FROM comments WHERE comment_reply_parent = $1",
 		[commentId]
 	)
 	const childComments = rows.map((row) => {
@@ -22,10 +22,25 @@ async function getRecursiveChildComments(commentId: string): Promise<Object> {
 	const directChildren = await getDirectChildComments(commentId)
 	const commentTree = await Promise.all(
 		directChildren.map(async (childComment) => {
-			return {
-				"commentId": childComment,
-				"children": await getRecursiveChildComments(childComment)
+
+			const {rows} = await db.query(
+				"SELECT * FROM comments WHERE comment_id = $1",
+				[childComment]
+			)
+
+			const commentData = rows[0]
+
+			const normalizedCommentData = normalizeObjectKeys(
+				commentData,
+				["comment_modified_time"]
+			)
+
+			const packedTreeData = {
+				...normalizedCommentData,
+				"childComments": await getRecursiveChildComments(childComment)
 			}
+
+			return packedTreeData
 		})
 	)
 	return commentTree
@@ -50,6 +65,9 @@ async function createComment(req: Request, res: Response) {
 			}
 			return
 		}
+
+		const numericPostId = Number.parseInt(postId)
+
 		let {commentBody, commentType, commentParent} = req.body
 		if (commentType == null) {
 			commentType = "ROOT"
@@ -84,8 +102,21 @@ async function createComment(req: Request, res: Response) {
 
 		await db.query("BEGIN;")
 		const {rows} = await db.query(
-			"INSERT INTO comments VALUES (DEFAULT, $1, $2, $3, $4, DEFAULT, $5, NOW(), DEFAULT) RETURNING comment_id",
-			[commentAuthor, postId, commentType, commentBody, commentParent]
+			"INSERT INTO comments VALUES (DEFAULT, $1, $2, $3, $4, DEFAULT, $5, 0, NOW(), DEFAULT) RETURNING comment_id",
+			[commentAuthor, numericPostId, commentType, commentBody, commentParent]
+		)
+
+		if (commentType == "REPLY" && commentParent != null){
+			// We know that the parent comment will be valid due to validation above
+			await db.query(
+				"UPDATE comments SET comment_reply_count = comment_reply_count + 1 WHERE comment_id = $1;",
+				[commentParent]
+			)
+		}
+
+		await db.query(
+			"UPDATE posts SET post_comment_count = post_comment_count + 1 WHERE post_id = $1;",
+			[numericPostId]
 		)
 
 		// Return the newly created comment's id to the client
@@ -94,7 +125,7 @@ async function createComment(req: Request, res: Response) {
 		await db.query("COMMIT;")
 		res.status(200).json({
 			"actionResult": "SUCCESS",
-			"postId": postId,
+			"postId": numericPostId,
 			"commentId": newCommentId
 		})
 	} catch (err){
@@ -108,28 +139,48 @@ async function createComment(req: Request, res: Response) {
 
 async function getPostComments(req: Request, res: Response): Promise<void> {
 	// GET /api/posts/:postId/comments
-	// Returns a tree like structure of all comments (comment ids) on a post
+	// Returns a tree like structure of all comments on a post
 	// Useful format for frontend clients to parse and display comment trees
 	try {
 		// Use with needsValidPost middleware
 		const {postId} = req.params
+
+		const commentPage = req.query.commentPage as string || "1"
+
+		const parsedCommentPage = Number.parseInt(commentPage)
+
+		if (Number.isNaN(parsedCommentPage) || parsedCommentPage < 1){
+			res.status(400).json({
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": ["commentPage"]
+			})
+			return
+		}
+
+		const commentPageOffset = ((parsedCommentPage - 1) * 10)
+
 		const {rows} = await db.query(
-			"SELECT comment_id FROM comments WHERE comment_parent_post = $1 AND comment_type = 'ROOT'",
-			[postId]
+			"SELECT * FROM comments WHERE comment_parent_post = $1 AND comment_type = 'ROOT' OFFSET $2 LIMIT 10;",
+			[postId, commentPageOffset]
 		)
-		const childComments = rows.map((row) => {
-			return row.comment_id
-		})
-		// Promise.all() returns Promise<T[]>
+
 		const childCommentTree = await Promise.all(
-			// Array.map(async (param) => T) returns Promise<T>[]
-			childComments.map(async (childComment) => {
+			rows.map(async (commentData) => {
+				const commentId = commentData.comment_id
+				const commentTree = await getRecursiveChildComments(commentId)
+
+				const normalizedCommentData = normalizeObjectKeys(
+					commentData,
+					["comment_modified_time"]
+				)
+
 				return {
-					"commentId": childComment,
-					"childComments": await getRecursiveChildComments(childComment)
+					...normalizedCommentData,
+					"childComments": commentTree
 				}
 			})
 		)
+
 		res.status(200).json({
 			"actionResult": "SUCCESS",
 			"postComments": childCommentTree
@@ -170,7 +221,10 @@ async function getComment(req: Request, res: Response): Promise<void> {
 
 		const childComments = await getDirectChildComments(commentId)
 		const commentData = rows[0]
-		let normalizedCommentData = normalizeObjectKeys(commentData, ["comment_modified_date"])
+		let normalizedCommentData = normalizeObjectKeys(
+			commentData,
+			["comment_modified_time"]
+		)
 		normalizedCommentData["childComments"] = childComments
 		res.status(200).json({
 			"actionResult": "SUCCESS",
@@ -213,11 +267,55 @@ async function updateComment(req: Request, res: Response): Promise<void> {
 		await db.query(
 			"UPDATE comments " +
 			"SET comment_body = $1, " +
-			"comment_modified_date = NOW(), " +
+			"comment_modified_time = NOW(), " +
 			"comment_edited = TRUE " +
 			"WHERE comment_id = $2;",
 			[commentBody, commentId]
 		)
+		await db.query("COMMIT;")
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err){
+		console.error(err)
+		await db.query("ROLLBACK;")
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function likeComment(req: Request, res: Response): Promise<void> {
+	try {
+		const {commentId} = req.params
+		const currentUser = getAuthenticatedUser(req)
+
+		// Check if the current user has already liked the comment
+		const {rows} = await db.query(
+			"SELECT 1 FROM comment_likes WHERE comment_id = $1 AND username = $2;",
+			[commentId, currentUser]
+		)
+
+		if (rows.length > 0){
+			// The user has already liked the post
+			// This type of request will most likely come from programmed clients
+			// And not frontends
+			res.status(400).json({
+				"actionResult": "ERR_ALREADY_LIKED"
+			})
+			return
+		}
+
+		await db.query("BEGIN;")
+		await db.query(
+			"UPDATE comments SET comment_like_count = comment_like_count + 1 WHERE comment_id = $1;",
+			[commentId]
+		)
+		await db.query(
+			"INSERT INTO comment_likes VALUES ($1, $2);",
+			[commentId, currentUser]
+		)
+		await db.query("COMMIT;")
 
 		res.status(200).json({
 			"actionResult": "SUCCESS"
@@ -230,6 +328,48 @@ async function updateComment(req: Request, res: Response): Promise<void> {
 		})
 	}
 }
+
+async function dislikeComment(req: Request, res: Response): Promise<void> {
+	try {
+		const {commentId} = req.params
+		const currentUser = getAuthenticatedUser(req)
+
+		// Check if the current user has already liked the comment
+		const {rows} = await db.query(
+			"SELECT 1 FROM comment_likes WHERE comment_id = $1 AND username = $2;",
+			[commentId, currentUser]
+		)
+
+		if (rows.length == 0){
+			// The user hasn't liked the comment
+			res.status(400).json({
+				"actionResult": "ERR_NOT_LIKED"
+			})
+			return
+		}
+
+		await db.query("BEGIN;")
+		await db.query(
+			"UPDATE comments SET comment_like_count = comment_like_count - 1 WHERE comment_id = $1;",
+			[commentId]
+		)
+		await db.query(
+			"DELETE FROM comment_likes WHERE comment_id = $1 AND username = $2;",
+			[commentId, currentUser]
+		)
+		await db.query("COMMIT;")
+
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
 // See -
 // https://stackoverflow.com/questions/32140273/nested-routes-in-express-where-a-parent-route-includes-a-param
 // {mergeParams: true} allows parent routers to pass URLParams to child routers
