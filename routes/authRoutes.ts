@@ -5,6 +5,7 @@ import {hash, compare} from "bcrypt"
 import {Router, Request, Response} from "express"
 import {PropertyValidatorType, validateProperties, validateAuthToken, validateRefreshToken} from "../utils/common"
 import * as middleware from "../utils/middleware";
+import * as crypto from "crypto";
 
 function validateEmail(email: string): boolean {
 	let emailRegex: RegExp = /^[\w+-.]*@[^.][a-z.-]*\.[a-zA-Z]{2,}$/
@@ -92,19 +93,13 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 	return [isDuplicateUserName, isDuplicateUserMail]
 }
 
-function generateVerificationToken() {
+function generateActivationToken(userName: string) {
 	// Length of token to generate
-	const tokenLength = 64
-	let verificationToken = ""
-	// Set of characters to generate token from
-	const charSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-	for (let idx = 0; idx < tokenLength; idx++) {
-		let randomIndex = Math.floor(
-			Math.random() * (charSet.length - 1)
-		)
-		verificationToken += charSet[randomIndex]
-	}
-	return verificationToken
+	const activationToken = crypto
+		.createHash("sha256")
+		.update(userName)
+		.digest("hex")
+	return activationToken
 }
 
 async function userSignup(req: Request, res: Response): Promise<void> {
@@ -145,7 +140,7 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 				})
 			} else {
 				const passHash: string = await hash(userPass, 10)
-				const verificationToken = generateVerificationToken()
+				const activationToken = generateActivationToken(userName)
 				await db.query("BEGIN;") // Begin DB Transaction
 				await db.query(
 					"INSERT INTO accounts VALUES ($1, $2, $3, $4, NOW(), DEFAULT);",
@@ -153,10 +148,10 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 				)
 				await db.query(
 					"INSERT INTO inactive_accounts VALUES ($1, $2);",
-					[userName, verificationToken]
+					[userName, activationToken]
 				)
 				// Send verification mail
-				await sendActivationMail(userMail, userName, verificationToken)
+				await sendActivationMail(userMail, userName, activationToken)
 				await db.query("COMMIT;")      // Commit transaction to db
 				res.status(200).json({
 					"actionResult": "SUCCESS"                 // Notify of success
@@ -175,30 +170,31 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 async function userActivate(req: Request, res: Response): Promise<void> {
 	try {
 		const {userName, activationToken} = req.body
-		await db.query("BEGIN;")
-		const {rows} = await db.query(
-			"DELETE FROM inactive_accounts WHERE username = $1 AND activationToken = $2 RETURNING *",
-			[userName, activationToken]
-		)
-		if (rows.length == 0) {
+
+		const userNameBasedToken = generateActivationToken(userName)
+
+		// Since activation tokens are SHA-256 hashes of the username
+		// The hash of the param username and the activation token must match
+		if (userNameBasedToken !== activationToken){
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["userName", "activationToken"]
 			})
-			await db.query("ROLLBACK;")
-			return
 		}
 
+		await db.query("BEGIN;")
 		await db.query(
-			"UPDATE accounts SET activated = TRUE WHERE username = $1",
+			"UPDATE accounts SET activated = TRUE WHERE username = $1;",
 			[userName]
 		)
-
+		await db.query(
+			"DELETE FROM inactive_accounts WHERE username = $1;",
+			[userName]
+		)
 		await db.query("COMMIT;")
 		res.status(200).json({
 			"actionResult": "SUCCESS"
 		})
-
 	} catch (err) {
 		console.error(err)
 		await db.query("ROLLBACK;")
