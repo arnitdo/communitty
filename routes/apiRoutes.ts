@@ -8,6 +8,7 @@ import * as swaggerDocument from '../docs/swagger.json';
 import {authRouter} from "./authRoutes";
 import {postRouter} from "./postRoutes";
 import {commentRouter} from "./commentRoutes";
+import {userRouter} from "./userRoutes";
 
 function sendSwaggerDocument(req: Request, res: Response){
 	res.status(200).json(swaggerDocument)
@@ -78,6 +79,7 @@ apiRouter.use("/docs/", serveDocs)
 apiRouter.use("/auth/", authRouter)			// -> /api/auth/
 apiRouter.use("/posts/", postRouter)		// -> /api/posts/
 apiRouter.use("/comments/", commentRouter)	// -> /api/comments/
+apiRouter.use("/users/", userRouter)
 
 apiRouter.get("/heartbeat/", apiHeartbeat)
 
