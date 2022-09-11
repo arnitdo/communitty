@@ -1,11 +1,11 @@
-import {Request, Response} from "express";
+import {Request, Response, NextFunction} from "express";
 import {db} from "./db";
 import {validateAuthToken, getAuthenticatedUser, stripAuthHeader, validatePostId, validateCommentId} from "./common";
 
-type MiddlewareType = (req: Request, res: Response, next: (...args: any[]) => any) => void
+type MiddlewareType = (req: Request, res: Response, next: NextFunction) => void
 
 // Middleware for authenticated routes
-async function needsToken(req: Request, res: Response, next: () => any): Promise<void> {
+async function needsToken(req: Request, res: Response, next: NextFunction): Promise<void> {
 	const authHeader = req.header("Authorization")
 
 	if (!authHeader) {
@@ -37,7 +37,7 @@ async function needsToken(req: Request, res: Response, next: () => any): Promise
 function needsBodyParams(...requiredParams: string[]): MiddlewareType {
 	// Dynamically generates a middleware function that verifies
 	// if all required body params are provided in the request body
-	return function (req: Request, res: Response, next: (...args: any[]) => void) {
+	return function (req: Request, res: Response, next: NextFunction) {
 		if (req.body) {
 			const requestParams: string[] = Object.keys(req.body);
 			let missingProperties: string[] = [];
@@ -64,7 +64,7 @@ function needsBodyParams(...requiredParams: string[]): MiddlewareType {
 }
 
 function needsURLParams(...requiredParams: string[]): MiddlewareType {
-	return function (req: Request, res: Response, next: (...args: any[]) => void) {
+	return function (req: Request, res: Response, next: NextFunction) {
 		if (req.params){
 			const URLParams: string[] = Object.keys(req.params)
 			let missingProperties: string[] = [];
@@ -92,7 +92,7 @@ function needsURLParams(...requiredParams: string[]): MiddlewareType {
 
 // Ensures that the current user has activated `true` in database
 // Use this middleware *after* the needsToken middleware
-async function needsActivatedUser(req: Request, res: Response, next: () => any): Promise<void> {
+async function needsActivatedUser(req: Request, res: Response, next: NextFunction): Promise<void> {
 	try {
 		const currentUser = getAuthenticatedUser(req)
 		const {rows} = await db.query(
@@ -122,7 +122,7 @@ async function needsActivatedUser(req: Request, res: Response, next: () => any):
 	}
 }
 
-async function needsValidPost(req: Request, res: Response, next: () => any): Promise<void> {
+async function needsValidPost(req: Request, res: Response, next: NextFunction): Promise<void> {
 	// Use needsURLParams("postId") *before* this
 	const {postId} = req.params
 	const isValidPostId = await validatePostId(postId)
@@ -136,21 +136,21 @@ async function needsValidPost(req: Request, res: Response, next: () => any): Pro
 	next()
 }
 
-async function needsValidComment(req: Request, res: Response, next: () => any): Promise<void> {
+async function needsValidComment(req: Request, res: Response, next: NextFunction): Promise<void> {
 	// Use needsURLParams("commentId") *before* this
 	const {commentId} = req.params
 	const isValidCommentId = await validateCommentId(commentId)
 	if (isValidCommentId == false) {
 		res.status(404).json({
 			"actionResult": "ERR_INVALID_PROPERTIES",
-			"invalidProperties": ["postId"]
+			"invalidProperties": ["commentId"]
 		})
 		return
 	}
 	next()
 }
 
-async function needsPostAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
+async function needsPostAuthor(req: Request, res: Response, next: NextFunction): Promise<void> {
 	// Use *after* needsValidPost middleware
 	const {postId} = req.params
 
@@ -174,7 +174,7 @@ async function needsPostAuthor(req: Request, res: Response, next: (...args: any[
 	next()
 }
 
-async function needsCommentAuthor(req: Request, res: Response, next: (...args: any[]) => any): Promise<void> {
+async function needsCommentAuthor(req: Request, res: Response, next: NextFunction): Promise<void> {
 	/*
 		Use after *needsValidPost* middleware
 		And 	  *needsValidComment* middleware
