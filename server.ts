@@ -7,17 +7,32 @@ import {db} from "./utils/db";
 
 import {apiRouter} from "./routes/apiRoutes";
 import {clientRouter} from "./routes/clientRoutes";
+import {NextFunction} from "express";
 
 // Initialize ExpressJS App
 const app = express()
 
 // Configure
+app.set("etag", false) // Disable etag-based caching
+
+// PaaS proxies requests, required for express-rate-limit middleware
+app.set("trust proxy", true)
+
+
 app.use(cors())
 app.use(helmet())
 app.use(express.urlencoded({
 	extended: true
 }))
 app.use(express.json())
+
+// @ts-ignore
+app.use((req: Request, res: e.Response, next: NextFunction) => {
+	// TS might take the Web API Response type definitions
+	// So redirect it to express response using e.Response
+	res.header("Cache-Control", 'no-cache')
+	next()
+})
 
 // Serve react build files (production build, `react-scripts build`)
 // Always keep this on top, static files must be searched through first by the server
@@ -26,9 +41,6 @@ app.use(
 		path.join(__dirname, 'client/build/')
 	)
 )
-
-// Heroku proxies requests, required for express-rate-limit middleware
-app.set("trust proxy", true)
 
 // Use the API router here
 app.use("/api/", apiRouter)
