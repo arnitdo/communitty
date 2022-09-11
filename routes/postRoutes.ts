@@ -32,7 +32,7 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 	// In this case, the caller will be our route handler
 	const {sortType, postType, searchQuery, searchPage} = searchParams
 	let searchClauses: string[] = []
-	let baseQuery = "SELECT post_id FROM posts" // Only select post IDs, not entire post data.
+	let baseQuery = "SELECT * FROM posts" // Select entire post data.
 	let queryParams: any[] = [];
 
 	if (searchQuery != null){
@@ -54,13 +54,13 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 
 	if (sortType == "SORT_HOT"){
 		searchClauses.push(
-			" AND (NOW() - post_modified_date) < INTERVAL '1 day'" // Hot posts = posts < 1 day old
+			" AND (NOW() - post_modified_time) < INTERVAL '1 day'" // Hot posts = posts < 1 day old
 		)
 	}
 
 	if (sortType == "SORT_NEW"){
 		searchClauses.push(
-			" ORDER BY post_modified_date DESC"
+			" ORDER BY post_modified_time DESC"
 		)
 	}
 
@@ -83,11 +83,14 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 
 	const {rows} = await db.query(baseQuery, queryParams)
 
-	const resultPostIds = rows.map((row) => {
-		return row.post_id
+	const resultPosts = rows.map((row) => {
+		return normalizeObjectKeys(
+			row,
+			['post_modified_time']
+		)
 	})
 
-	return resultPostIds
+	return resultPosts
 }
 
 const separatorRegex = /(\.|\s|,|_|-|;|:|!|\?)/gi
@@ -127,7 +130,7 @@ function getTagsFromString(tagString: string): string[] {
 }
 
 function validateSortType(sortType: SortType | null | undefined): boolean {
-	if (sortType == null || sortType.trim() != ""){
+	if (sortType == null){
 		return true
 	} else if (validSortTypes.indexOf(sortType) == -1){
 		return false
@@ -136,7 +139,7 @@ function validateSortType(sortType: SortType | null | undefined): boolean {
 }
 
 function validatePostType(postType: PostType | "ALL_POSTS" | null | undefined): boolean {
-	if (postType == null || postType.trim() != "" || postType == "ALL_POSTS"){
+	if (postType == null || postType == "ALL_POSTS"){
 		return true
 	} else if (validPostTypes.indexOf(postType) == -1){
 		return false
@@ -187,6 +190,15 @@ async function createPost(req: Request, res: Response): Promise<void> {
 				// URL.constructor() errs when an invalid URL is provided
 				const bodyURL = new url.URL(postBody)
 
+				if (bodyURL.hostname === "localhost" || bodyURL.protocol == "file:"){
+					// Disallow requests to local fs
+					res.status(400).json({
+						"actionResult": "ERR_INVALID_PROPERTIES",
+						"invalidProperties": ["postBody"]
+					})
+					return
+				}
+
 				// We'll make a test call to the URL. A 404 will result in the post being discarded
 				const linkResponse = await fetch(postBody)
 				if (!linkResponse.ok) {
@@ -196,8 +208,28 @@ async function createPost(req: Request, res: Response): Promise<void> {
 					})
 					return
 				}
-			} catch (err) {
-				if (err instanceof TypeError) {
+
+				const contentTypeMap = {
+					"IMAGE_POST": "image",
+					"VIDEO_POST": "video",
+					"LINK_POST" : "application"
+				}
+
+				const requiredContentType = contentTypeMap[postType]
+				const responseContentType = linkResponse.headers.get("Content-Type")
+
+				if (
+					responseContentType == null ||
+					!responseContentType.startsWith(requiredContentType)){
+
+					res.status(400).json({
+						"actionResult": "ERR_INVALID_PROPERTIES",
+						"invalidProperties": ["postBody", "postType"]
+					})
+					return
+				}
+			} catch (err: any) {
+				if (err instanceof TypeError || err.code == "ERR_INVALID_URL") {
 					res.status(400).json({
 						"actionResult": "ERR_INVALID_PROPERTIES",
 						"invalidProperties": ["postBody"]
@@ -256,7 +288,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
 			res.sendStatus(404)
 		} else {
 			const postData = rows[0]
-			const normalizedPostData = normalizeObjectKeys(postData, ["post_modified_date"])
+			const normalizedPostData = normalizeObjectKeys(postData, ["post_modified_time"])
 			res.status(200).json({
 				"actionResult": "SUCCESS",
 				"postData": normalizedPostData
@@ -303,6 +335,27 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 					})
 					return
 				}
+
+				const contentTypeMap = {
+					"IMAGE_POST": "image",
+					"VIDEO_POST": "video",
+					"LINK_POST" : "application"
+				}
+
+				const requiredContentType = contentTypeMap[postType]
+				const responseContentType = linkResponse.headers.get("Content-Type")
+
+				if (
+					responseContentType == null ||
+					!responseContentType.startsWith(requiredContentType)){
+
+					res.status(400).json({
+						"actionResult": "ERR_INVALID_PROPERTIES",
+						"invalidProperties": ["postBody", "postType"]
+					})
+					return
+				}
+
 			} catch (err) {
 				if (err instanceof TypeError) {
 					res.status(400).json({
@@ -315,7 +368,8 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 				throw err
 			}
 		}
-		let postTags: string[] = [];
+
+		let postTags: string[];
 		let requestTags: string | null | undefined = req.body.postTags
 		if (requestTags != null) {
 			postTags = requestTags
@@ -333,7 +387,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 			"SET post_title = $1, " +
 			"post_body = $2, " +
 			"post_tags = $3, " +
-			"post_modified_date = NOW(), " +
+			"post_modified_time = NOW(), " +
 			"edited = TRUE " +
 			"WHERE post_id = $4;",
 			[postTitle, postBody, postTags, postId]
@@ -383,7 +437,7 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 	}
 }
 
-async function getPosts(req: Request, res: Response): Promise<void> {
+async function getPostSearches(req: Request, res: Response): Promise<void> {
 	// Retrieves a set of posts based on query params
 	try {// @ts-ignore
 		const {sortType, postType, searchQuery, searchPage}: string = req.query
@@ -427,11 +481,160 @@ async function getPosts(req: Request, res: Response): Promise<void> {
 	}
 }
 
+async function getPostLikes(req: Request, res: Response): Promise<void> {
+	try {
+		const {postId} = req.params
+		const likePage = req.query.likePage as string || "1"
+
+		const parsedLikePage = Number.parseInt(likePage)
+		if (Number.isNaN(parsedLikePage) || parsedLikePage < 1){
+			res.status(400).json({
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": ["likePage"]
+			})
+			return
+		}
+
+		const likePageOffset = ((parsedLikePage - 1) * 10)
+
+		const {rows} = await db.query(
+			"SELECT username FROM post_likes OFFSET $1 LIMIT 10;",
+			[likePageOffset]
+		)
+
+		const likedUsers = rows.map((row) => {
+			return row.username
+		})
+
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"likedUsers": likedUsers
+		})
+
+	} catch (err){
+		console.error(err)
+		await db.query("ROLLBACK;")
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function getLikeStatusOfUser(req: Request, res: Response): Promise<void> {
+	try {
+		const {postId, userName} = req.params
+
+		const {rows} = await db.query(
+			"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2;",
+			[postId, userName]
+		)
+
+		let likeStatus = (
+			rows.length > 0
+		)
+
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"likeStatus": likeStatus
+		})
+	} catch (err) {
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function likePost(req: Request, res: Response): Promise<void> {
+	try {
+		const {postId} = req.params
+		const currentUser = getAuthenticatedUser(req)
+
+		// Check if the current user has already liked the post
+		const {rows} = await db.query(
+			"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2;",
+			[postId, currentUser]
+		)
+
+		if (rows.length > 0){
+			// The user has already liked the post
+			// This type of request will most likely come from programmed clients
+			// And not frontends
+			res.status(400).json({
+				"actionResult": "ERR_ALREADY_LIKED"
+			})
+			return
+		}
+
+		await db.query("BEGIN;")
+		await db.query(
+			"UPDATE posts SET post_like_count = post_like_count + 1 WHERE post_id = $1;",
+			[postId]
+		)
+		await db.query(
+			"INSERT INTO post_likes VALUES ($1, $2);",
+			[postId, currentUser]
+		)
+		await db.query("COMMIT;")
+
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err){
+		console.error(err)
+		await db.query("ROLLBACK;")
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function dislikePost(req: Request, res: Response): Promise<void> {
+	try {
+		const {postId} = req.params
+		const currentUser = getAuthenticatedUser(req)
+
+		// Check if the current user has already liked the post
+		const {rows} = await db.query(
+			"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2;",
+			[postId, currentUser]
+		)
+
+		if (rows.length == 0){
+			// The user hasn't liked the post
+			res.status(400).json({
+				"actionResult": "ERR_NOT_LIKED"
+			})
+			return
+		}
+
+		await db.query("BEGIN;")
+		await db.query(
+			"UPDATE posts SET post_like_count = post_like_count - 1 WHERE post_id = $1;",
+			[postId]
+		)
+		await db.query(
+			"DELETE FROM post_likes WHERE post_id = $1 AND username = $2;",
+			[postId, currentUser]
+		)
+		await db.query("COMMIT;")
+
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
 const postRouter = Router()
 
 postRouter.get(
-	"/",
-	getPosts
+	"/search",
+	getPostSearches
 )
 
 postRouter.post(
@@ -471,6 +674,46 @@ postRouter.delete(
 		middleware.needsPostAuthor
 	],
 	deletePost
+)
+
+postRouter.get(
+	"/:postId/likes",
+	[
+		middleware.needsURLParams("postId"),
+		middleware.needsValidPost
+	],
+	getPostLikes
+)
+
+postRouter.get(
+	"/:postId/likes/:userName",
+	[
+		middleware.needsURLParams("postId", "userName"),
+		middleware.needsValidPost
+	],
+	getLikeStatusOfUser
+)
+
+postRouter.post(
+	"/:postId/likes",
+	[
+		middleware.needsToken,
+		middleware.needsActivatedUser,
+		middleware.needsURLParams("postId"),
+		middleware.needsValidPost
+	],
+	likePost
+)
+
+postRouter.delete(
+	"/:postId/likes",
+	[
+		middleware.needsToken,
+		middleware.needsActivatedUser,
+		middleware.needsURLParams("postId"),
+		middleware.needsValidPost
+	],
+	dislikePost
 )
 
 postRouter.use(
