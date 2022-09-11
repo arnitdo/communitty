@@ -16,6 +16,7 @@ function App(): JSX.Element {
 					content="communitty, community, social media"
 				/>
 			</Helmet>
+			Welcome to communitty! This site is still under development, so check back after a while.
 		</div>
 	)
 }
