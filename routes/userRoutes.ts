@@ -1,7 +1,22 @@
 import {db} from '../utils/db'
 import {Request, Response, Router} from "express";
-import {needsURLParams} from "../utils/middleware";
-import {normalizeObjectKeys} from "../utils/common";
+import * as middleware from "../utils/middleware";
+import {getAuthenticatedUser, normalizeObjectKeys} from "../utils/common";
+
+async function redirectToUserProfile(req: Request, res: Response): Promise<void> {
+	try {
+		const currentAuthUser = getAuthenticatedUser(req)
+
+		const userProfileURL = `/api/users/${currentAuthUser}/profile`
+
+		res.redirect(userProfileURL)
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
 
 async function getUserPosts(req: Request, res: Response): Promise<void> {
 	try {
@@ -44,10 +59,21 @@ async function getUserPosts(req: Request, res: Response): Promise<void> {
 
 const userRouter = Router()
 
+// Redirects to the profile of the currently authenticated user
+// Since we are passing the auth token in the header, we can also use
+// GET methods to obtain the required data
+userRouter.get(
+	"/me",
+	[
+		middleware.needsToken
+	],
+	redirectToUserProfile
+)
+
 userRouter.get(
 	"/:userName/posts",
 	[
-		needsURLParams("userName")
+		middleware.needsURLParams("userName")
 	],
 	getUserPosts
 )

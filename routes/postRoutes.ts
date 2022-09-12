@@ -288,7 +288,10 @@ async function getPost(req: Request, res: Response): Promise<void> {
 			res.sendStatus(404)
 		} else {
 			const postData = rows[0]
-			const normalizedPostData = normalizeObjectKeys(postData, ["post_modified_time"])
+			const normalizedPostData = normalizeObjectKeys(
+				postData,
+				["post_modified_time"]
+			)
 			res.status(200).json({
 				"actionResult": "SUCCESS",
 				"postData": normalizedPostData
