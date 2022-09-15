@@ -19,11 +19,23 @@
 		{
 			"name": "Auth",
 			"description": "Authentication and Verification routes"
+		},
+		{
+			"name": "User",
+			"description": "User profile and metadata routes"
+		},
+		{
+			"name": "Post",
+			"description": "Post CRUD Routes"
+		},
+		{
+			"name": "Comment",
+			"description": "Comment CRUD Routes"
 		}
 	],
 	"components": {
 		"schemas": {
-			"UserSignup": {
+			"SignupCredentials": {
 				"properties": {
 					"fullName": {
 						"type": "string",
@@ -39,7 +51,7 @@
 					},
 					"userMail": {
 						"type": "string",
-						"description": "The email address of the user.\nMust be a valid email address for verification"
+						"description": "The email address of the user.\nMust be a valid email address for account activation"
 					}
 				}
 			}
@@ -57,7 +69,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/UserSignup"
+								"$ref": "#/components/schemas/SignupCredentials"
 							},
 							"example": {
 								"fullName": "John Doe",
