@@ -153,6 +153,22 @@ async function validateCommentId(commentId: string | null): Promise<boolean> {
 	return true
 }
 
+async function validateUsername(userName: string | null): Promise<boolean> {
+	if (userName == null){
+		return false
+	}
+
+	const {rows} = await db.query(
+		"SELECT 1 FROM accounts WHERE username = $1;",
+		[userName]
+	)
+
+	if (rows.length == 0){
+		return false
+	}
+	return true
+}
+
 function normalizeObjectKeys(obj: any, skipValueKeys?: string[]): any {
 	// skipValueKeys: optional array of parameters copy as-is
 	// 				  use for compound objects such as dates
@@ -205,5 +221,6 @@ export {
 	validateProperties,
 	validatePostId,
 	validateCommentId,
+	validateUsername,
 	normalizeObjectKeys
 }

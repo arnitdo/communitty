@@ -30,7 +30,9 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 
 		if (rows.length == 0){
 			// No user exists with that username
-			res.sendStatus(404)
+			res.status(404).json({
+				"actionResult": "ERR_USER_NOT_FOUND"
+			})
 			return
 		}
 
@@ -71,7 +73,9 @@ async function redirectToUserAvatar(req: Request, res: Response): Promise<void> 
 			// If the user doesn't exist, we could maybe redirect it to the default user avatar too?
 			// Open to contributions
 			// We'll send a 404 as of now
-			res.sendStatus(404)
+			res.status(404).json({
+				"actionResult": "ERR_USER_NOT_FOUND"
+			})
 			return
 		}
 
@@ -186,7 +190,8 @@ userRouter.get(
 userRouter.get(
 	"/:userName/profile",
 	[
-		middleware.needsURLParams("userName")
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
 	],
 	getUserProfile
 )

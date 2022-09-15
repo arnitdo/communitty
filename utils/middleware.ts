@@ -1,6 +1,13 @@
 import {Request, Response, NextFunction} from "express";
 import {db} from "./db";
-import {validateAuthToken, getAuthenticatedUser, stripAuthHeader, validatePostId, validateCommentId} from "./common";
+import {
+	validateAuthToken,
+	getAuthenticatedUser,
+	stripAuthHeader,
+	validatePostId,
+	validateCommentId,
+	validateUsername
+} from "./common";
 
 type MiddlewareType = (req: Request, res: Response, next: NextFunction) => void
 
@@ -150,6 +157,21 @@ async function needsValidComment(req: Request, res: Response, next: NextFunction
 	next()
 }
 
+async function needsValidUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+	// Use needsURLParams("userName") before this
+
+	const {userName} = req.params
+	const isValidUser = await validateUsername(userName)
+
+	if (isValidUser == false){
+		res.status(404).json({
+			"actionResult": "ERR_INVALID_PROPERTIES",
+			"invalidProperties": ["userName"]
+		})
+		return
+	}
+	next()
+}
 async function needsPostAuthor(req: Request, res: Response, next: NextFunction): Promise<void> {
 	// Use *after* needsValidPost middleware
 	const {postId} = req.params
@@ -208,6 +230,7 @@ export {
 	needsActivatedUser,
 	needsValidPost,
 	needsValidComment,
+	needsValidUser,
 	needsPostAuthor,
 	needsCommentAuthor
 }

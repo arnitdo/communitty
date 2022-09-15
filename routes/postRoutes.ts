@@ -277,26 +277,22 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
 	// PostId will be passed as URL Param
 	// Route /posts/:postId/
+	// used with needsValidPost middleware
 	try {
 		const {postId} = req.params
 		const {rows} = await db.query(
 			"SELECT * FROM posts WHERE post_id = $1",
 			[postId]
 		)
-		if (rows.length == 0) {
-			// No post exists with that ID
-			res.sendStatus(404)
-		} else {
-			const postData = rows[0]
-			const normalizedPostData = normalizeObjectKeys(
-				postData,
-				["post_modified_time"]
-			)
-			res.status(200).json({
-				"actionResult": "SUCCESS",
-				"postData": normalizedPostData
-			})
-		}
+		const postData = rows[0]
+		const normalizedPostData = normalizeObjectKeys(
+			postData,
+			["post_modified_time"]
+		)
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"postData": normalizedPostData
+		})
 	} catch (err) {
 		console.error(err)
 		res.status(500).json({
@@ -652,7 +648,10 @@ postRouter.post(
 
 postRouter.get(
 	"/:postId/",
-	middleware.needsURLParams("postId"),
+	[
+		middleware.needsURLParams("postId"),
+		middleware.needsValidPost
+	],
 	getPost
 )
 
