@@ -94,7 +94,7 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 }
 
 function generateActivationToken(userName: string) {
-	// Length of token to generate
+	// Returns SHA-256 hash of username
 	const activationToken = crypto
 		.createHash("sha256")
 		.update(userName)
@@ -104,7 +104,7 @@ function generateActivationToken(userName: string) {
 
 async function userSignup(req: Request, res: Response): Promise<void> {
 	try {
-		const {userName, userMail, userPass, fullName} = req.body // Get required request parameters
+		let {userName, userMail, userPass, fullName} = req.body // Get required request parameters
 		const requestProperties: object = {     // Key-Value map of property name : property value
 			userName,
 			userMail,
@@ -125,6 +125,7 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 				}
 			)
 		} else {
+			userMail = userMail.toLowerCase()
 			const [isDuplicateUserName, isDuplicateUserMail] = await isDuplicateUser(userName, userMail)
 			if (isDuplicateUserName || isDuplicateUserMail) {
 				let duplicateProperties: string[] = []
@@ -143,13 +144,28 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 				const activationToken = generateActivationToken(userName)
 				await db.query("BEGIN;") // Begin DB Transaction
 				await db.query(
-					"INSERT INTO accounts VALUES ($1, $2, $3, $4, NOW(), DEFAULT);",
-					[userName, userMail, passHash, fullName]
+					"INSERT INTO accounts VALUES ($1, $2, $3, NOW(), DEFAULT);",
+					[userName, userMail, passHash]
 				)
 				await db.query(
 					"INSERT INTO inactive_accounts VALUES ($1, $2);",
 					[userName, activationToken]
 				)
+
+				const hashedMail = crypto
+					.createHash("sha256")
+					.update(userMail)
+					.digest("hex")
+
+				const avatarURL = `https://www.gravatar.com/avatar/${hashedMail}?d=retro&f=y`
+
+				const autogenProfileDescription = `Hi! I'm ${fullName}! Nice to meet you on Communitty!`
+
+				await db.query(
+					"INSERT INTO profiles VALUES ($1, $2, $3, $4, DEFAULT);",
+					[userName, fullName, autogenProfileDescription, avatarURL]
+				)
+
 				// Send verification mail
 				await sendActivationMail(userMail, userName, activationToken)
 				await db.query("COMMIT;")      // Commit transaction to db
@@ -169,7 +185,7 @@ async function userSignup(req: Request, res: Response): Promise<void> {
 
 async function userActivate(req: Request, res: Response): Promise<void> {
 	try {
-		const {userName, activationToken} = req.body
+		let {userName, activationToken} = req.body
 
 		const userNameBasedToken = generateActivationToken(userName)
 
@@ -187,6 +203,12 @@ async function userActivate(req: Request, res: Response): Promise<void> {
 			"UPDATE accounts SET activated = TRUE WHERE username = $1;",
 			[userName]
 		)
+
+		await db.query(
+			"UPDATE profiles SET account_activated = TRUE WHERE username = $1;",
+			[userName]
+		)
+
 		await db.query(
 			"DELETE FROM inactive_accounts WHERE username = $1;",
 			[userName]
