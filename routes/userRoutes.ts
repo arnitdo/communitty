@@ -57,9 +57,42 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 	}
 }
 
+async function redirectToUserAvatar(req: Request, res: Response): Promise<void> {
+	try {
+		// Validated by needsURLParams
+		const {userName} = req.params
+
+		const {rows} = await db.query(
+			"SELECT avatar_url FROM profiles WHERE username = $1;",
+			[userName]
+		)
+
+		if (rows.length == 0){
+			// If the user doesn't exist, we could maybe redirect it to the default user avatar too?
+			// Open to contributions
+			// We'll send a 404 as of now
+			res.sendStatus(404)
+			return
+		}
+
+		const userData = rows[0]
+		const userAvatarURL = userData.avatar_url
+
+		// And sendoff!
+		res.redirect(userAvatarURL)
+
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
 async function getUserPosts(req: Request, res: Response): Promise<void> {
 	try {
-		const userName = req.params.userName
+		// Validated by needsURLParams
+		const {userName} = req.params
 		const postPage = req.query.postPage as string || "1"
 		const parsedPostPage = Number.parseInt(postPage)
 		if (Number.isNaN(parsedPostPage) || parsedPostPage < 1){
@@ -156,6 +189,14 @@ userRouter.get(
 		middleware.needsURLParams("userName")
 	],
 	getUserProfile
+)
+
+userRouter.get(
+	"/:userName/avatar",
+	[
+		middleware.needsURLParams("userName")
+	],
+	redirectToUserAvatar
 )
 
 userRouter.get(
