@@ -1,6 +1,7 @@
 {
   "name": "communitty",
   "version": "1.0.0",
+  "private": true,
   "description": "An open-source social media app created with ExpressJS and ReactJS ",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
