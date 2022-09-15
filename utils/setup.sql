@@ -9,9 +9,17 @@ CREATE TABLE IF NOT EXISTS accounts (
     username TEXT PRIMARY KEY,                -- Username, primary
     email TEXT NOT NULL,                      -- User's email
     password TEXT NOT NULL,                   -- Hash of the password
-    full_name TEXT NOT NULL,                  -- Full name of user
     created_on DATE,                          -- Account creation date
     activated BOOLEAN DEFAULT FALSE           -- Account activation status (default false for all new accounts)
+);
+
+CREATE TABLE IF NOT EXISTS profiles (
+    username TEXT NOT NULL,                             -- username (from accounts)
+    full_name TEXT NOT NULL,                            -- Full name of user
+    description TEXT DEFAULT '',                        -- Profile description, blank by default
+    avatar_url TEXT NOT NULL,                           -- Avatar URL (Derived from gravatar)
+    account_activated BOOLEAN DEFAULT FALSE,   -- Account activation status (Linked to accounts.activated)
+    CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES accounts(username)
 );
 
 CREATE TABLE IF NOT EXISTS inactive_accounts (
@@ -32,6 +40,9 @@ CREATE TABLE IF NOT EXISTS posts (
         -- For link posts, content will be the target URL
         -- For image posts, content will be the Image URL
         -- For video posts, content will be the Video URL
+        -- Having an external site (such as streamable, vimeo, etc.) host digital content is better
+        -- We don't have to worry about CSAM being uploaded directly, the content provider will (hopefully) filter it out for us
+        -- Any reported cases will still be handled manually
     post_tags TEXT[4] DEFAULT '{}', -- Post tags, for SEO / metadata searching
         -- Allow only upto 4 tags, no more!
         -- Just a precautionary measure, I don't think we'll need many tags
@@ -65,7 +76,7 @@ CREATE TABLE IF NOT EXISTS comments (
     CONSTRAINT fk_comment_author_username FOREIGN KEY (comment_author) REFERENCES accounts(username),
     CONSTRAINT fk_comment_parent_post FOREIGN KEY (comment_parent_post) REFERENCES posts(post_id)
 
-)
+);
 
 CREATE TABLE IF NOT EXISTS post_likes (
     post_id INTEGER NOT NULL,
