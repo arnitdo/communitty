@@ -15,6 +15,20 @@ function productionAPIURL(urlPath: string): string{
 	return urlPath;
 }
 
+
+/*
+	You might be wondering why this file even exists, or why API_URL couldn't be a direct route as-is
+
+	Justification on `developmentAPIURL`:
+		In a dev environment, `npm run dev`, the client will have hot reload enabled on port 3000 (by React)
+		Thus, the client on `http://localhost:3000/` will make requests to `http://localhost:3000/api/...` routes, which aren't valid
+		Since the backend is actually served on port 8800
+
+	Justification on `productionAPIURL`:
+		In a production environment, the client bundle will be served on basically all routes
+		There won't be separate development ports for the server and client
+		Hence, all calls to API routes will be handled on the same port as the client
+ */
 let API_URL: (urlPath: string) => string;
 if (process.env.NODE_ENV == "development"){
 	API_URL = developmentAPIURL

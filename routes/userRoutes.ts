@@ -199,7 +199,8 @@ userRouter.get(
 userRouter.get(
 	"/:userName/avatar",
 	[
-		middleware.needsURLParams("userName")
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
 	],
 	redirectToUserAvatar
 )
@@ -207,7 +208,8 @@ userRouter.get(
 userRouter.get(
 	"/:userName/posts",
 	[
-		middleware.needsURLParams("userName")
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
 	],
 	getUserPosts
 )
@@ -215,7 +217,8 @@ userRouter.get(
 userRouter.get(
 	"/:userName/comments",
 	[
-		middleware.needsURLParams("userName")
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
 	],
 	getUserComments
 )
