@@ -27,7 +27,7 @@ const defaultSearchParams: PostSearchParamType = {
 	searchPage: 1
 }
 
-async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>{
+async function searchPosts(searchParams: PostSearchParamType, searcherUsername: string | null): Promise<string[]>{
 	// This assumes that parameter validation has been carried out by the caller
 	// In this case, the caller will be our route handler
 	const {sortType, postType, searchQuery, searchPage} = searchParams
@@ -83,12 +83,34 @@ async function searchPosts(searchParams: PostSearchParamType): Promise<string[]>
 
 	const {rows} = await db.query(baseQuery, queryParams)
 
-	const resultPosts = rows.map((row) => {
-		return normalizeObjectKeys(
-			row,
-			['post_modified_time']
-		)
-	})
+	const resultPosts = await Promise.all(
+		rows.map(async (row) => {
+			const rowPostId = row.post_id
+
+			let postLikeStatus: boolean = false
+
+			if (searcherUsername != null){
+				const {rows} = await db.query(
+					"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2;",
+					[rowPostId, searcherUsername]
+				)
+
+				if (rows.length == 1){
+					postLikeStatus = true
+				}
+			}
+
+			const normalizedPostData = normalizeObjectKeys(
+					row,
+					['post_modified_time']
+			)
+
+			return {
+				...normalizedPostData,
+				"userLikeStatus": postLikeStatus
+			}
+		})
+	)
 
 	return resultPosts
 }
@@ -284,14 +306,39 @@ async function getPost(req: Request, res: Response): Promise<void> {
 			"SELECT * FROM posts WHERE post_id = $1",
 			[postId]
 		)
+
 		const postData = rows[0]
+
+		let postLikeStatus: boolean = false
+
+		// Additional: Check if the current authenticated user has liked this post
+		if (req.header("Authorization")){
+			// Auth validity will be checked by optionalToken middleware
+			const currentAuthUser = getAuthenticatedUser(req)
+
+			const {rows} = await db.query(
+				"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2;",
+				[postId, currentAuthUser]
+			)
+
+			if (rows.length == 1){
+				postLikeStatus = true
+			}
+		}
+
 		const normalizedPostData = normalizeObjectKeys(
 			postData,
 			["post_modified_time"]
 		)
+
+		const finalPostData = {
+			...normalizedPostData,
+			"userLikeStatus": postLikeStatus
+		}
+
 		res.status(200).json({
 			"actionResult": "SUCCESS",
-			"postData": normalizedPostData
+			"postData": finalPostData
 		})
 	} catch (err) {
 		console.error(err)
@@ -423,6 +470,12 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 			"DELETE FROM comments WHERE comment_parent_post = $1;",
 			[postId]
 		)
+
+		// And delete all post likes
+		await db.query(
+			"DELETE FROM post_likes WHERE post_id = $1;",
+			[postId]
+		)
 		await db.query("COMMIT;")
 		res.status(200).json({
 			"actionResult": "SUCCESS"
@@ -466,7 +519,13 @@ async function getPostSearches(req: Request, res: Response): Promise<void> {
 			"searchPage": searchPage || defaultSearchParams.searchPage
 		}
 
-		const returnedPosts = await searchPosts(finalSearchParams)
+		let searcherUsername: string | null = null;
+
+		if (req.header("Authorization")){
+			searcherUsername = getAuthenticatedUser(req)
+		}
+
+		const returnedPosts = await searchPosts(finalSearchParams, searcherUsername)
 
 		res.status(200).json({
 			"actionResult": "SUCCESS",
@@ -497,8 +556,8 @@ async function getPostLikes(req: Request, res: Response): Promise<void> {
 		const likePageOffset = ((parsedLikePage - 1) * 10)
 
 		const {rows} = await db.query(
-			"SELECT username FROM post_likes OFFSET $1 LIMIT 10;",
-			[likePageOffset]
+			"SELECT username FROM post_likes WHERE post_id = $1 OFFSET $2 LIMIT 10;",
+			[postId, likePageOffset]
 		)
 
 		const likedUsers = rows.map((row) => {
@@ -633,6 +692,9 @@ const postRouter = Router()
 
 postRouter.get(
 	"/search",
+	[
+		middleware.optionalToken
+	],
 	getPostSearches
 )
 
@@ -650,7 +712,8 @@ postRouter.get(
 	"/:postId/",
 	[
 		middleware.needsURLParams("postId"),
-		middleware.needsValidPost
+		middleware.needsValidPost,
+		middleware.optionalToken
 	],
 	getPost
 )
