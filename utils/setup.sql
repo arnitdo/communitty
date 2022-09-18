@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     description TEXT DEFAULT '',                        -- Profile description, blank by default
     avatar_url TEXT NOT NULL,                           -- Avatar URL (Derived from gravatar)
     account_activated BOOLEAN DEFAULT FALSE,   -- Account activation status (Linked to accounts.activated)
+    follower_count INTEGER DEFAULT 0,
+    following_count INTEGER DEFAULT 0,
     CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES accounts(username)
 );
 
@@ -78,6 +80,12 @@ CREATE TABLE IF NOT EXISTS comments (
 
 );
 
+CREATE TABLE IF NOT EXISTS profile_follows (
+    following_username TEXT NOT NULL,
+    follower_username TEXT NOT NULL,
+    follow_since DATE
+);
+
 CREATE TABLE IF NOT EXISTS post_likes (
     post_id INTEGER NOT NULL,
     username TEXT NOT NULL,
@@ -86,7 +94,7 @@ CREATE TABLE IF NOT EXISTS post_likes (
     CONSTRAINT fk_like_username FOREIGN KEY (username) REFERENCES accounts(username)
 );
 
-CREATE TABLE IF NOT EXISTS commment_likes (
+CREATE TABLE IF NOT EXISTS comment_likes (
     comment_id INTEGER NOT NULL,
     username TEXT NOT NULL,
 
