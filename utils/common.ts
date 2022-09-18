@@ -23,6 +23,7 @@ function validateAuthToken(authToken: string): [boolean, JwtPayload | null] {
 	} catch (err) {
 		console.error(err)
 		// Note that jsonwebtoken errs `JsonWebTokenError` on invalid token
+		// And TokenExpiredError on an expired token
 		if (err instanceof TokenExpiredError) {
 			return [false, authTokenData]
 		}
