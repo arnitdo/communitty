@@ -39,6 +39,33 @@ async function needsToken(req: Request, res: Response, next: NextFunction): Prom
 	}
 }
 
+async function optionalToken(req: Request, res: Response, next: NextFunction){
+	const authHeader = req.header("Authorization")
+	if (authHeader == null){
+		// Since an auth token is optional, we'll pass it onto the next middleware
+		next()
+		return
+	}
+
+	const authToken = stripAuthHeader(authHeader)
+	const [authTokenValidity, authTokenData] = validateAuthToken(authToken)
+	if (authTokenValidity == false) {
+		if (authTokenData == null) {
+			// Auth token is invalid
+			res.status(401).json({
+				"actionResult": "ERR_INVALID_TOKEN"
+			})
+		} else {
+			res.status(401).json({
+				"actionResult": "ERR_AUTH_EXPIRED"
+			})
+		}
+	} else {
+		// Auth token is valid, we'll pass
+		next()
+	}
+}
+
 // Middleware to accept requests that have all the required parameters.
 // Reject requests that do not have all listed body params
 function needsBodyParams(...requiredParams: string[]): MiddlewareType {
@@ -225,6 +252,7 @@ async function needsCommentAuthor(req: Request, res: Response, next: NextFunctio
 
 export {
 	needsToken,
+	optionalToken,
 	needsBodyParams,
 	needsURLParams,
 	needsActivatedUser,
