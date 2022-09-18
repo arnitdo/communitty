@@ -26,14 +26,6 @@ app.use(express.urlencoded({
 }))
 app.use(express.json())
 
-// @ts-ignore
-app.use((req: Request, res: e.Response, next: NextFunction) => {
-	// TS might take the Web API Response type definitions
-	// So redirect it to express response using e.Response
-	res.header("Cache-Control", 'no-cache')
-	next()
-})
-
 // Serve react build files (production build, `react-scripts build`)
 // Always keep this on top, static files must be searched through first by the server
 app.use(
