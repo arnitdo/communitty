@@ -174,6 +174,48 @@ async function getUserComments(req: Request, res: Response): Promise<void> {
 }
 
 
+async function getUserFollows(req: Request, res: Response): Promise<void> {
+	try {
+		const {userName} = req.params
+		const followPage = req.query.followPage as string || "1"
+
+		const parsedFollowPage = Number.parseInt(followPage)
+		if (Number.isNaN(parsedFollowPage)){
+			res.status(400).json({
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": ["followPage"]
+			})
+		}
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function followUser(req: Request, res: Response): Promise<void> {
+	try {
+
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function unfollowUser(req: Request, res: Response): Promise<void> {
+	try {
+		const {userName} = req.params
+	} catch (err){
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
 const userRouter = Router()
 
 // Redirects to the profile of the currently authenticated user
