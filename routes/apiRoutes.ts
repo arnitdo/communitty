@@ -1,4 +1,4 @@
-import {Request, Response, Router} from 'express'
+import {NextFunction, Request, Response, Router} from 'express'
 import {rateLimit} from 'express-rate-limit'
 
 import {serve as serveDocs, setup as setupDocs} from 'swagger-ui-express'
@@ -73,6 +73,13 @@ const swaggerOptions = {
 
 apiRouter.use(actionRateLimiter)					// Ratelimit all API routes
 apiRouter.use(requestRateLimiter)
+
+apiRouter.use((req: Request, res: Response, next: NextFunction) => {
+	// TS might take the Web API Response type definitions
+	// So redirect it to express response using e.Response
+	res.header("Cache-Control", 'no-cache')
+	next()
+})
 
 apiRouter.use("/docs/", serveDocs)
 
