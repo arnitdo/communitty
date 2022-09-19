@@ -119,7 +119,7 @@ async function validatePostId(postId: string | null): Promise<boolean> {
 		return false
 	}
 	const numericPostId = parseInt(postId)
-	if (Number.isNaN(numericPostId)){
+	if (Number.isNaN(numericPostId) || numericPostId < 1){
 		return false
 	}
 
@@ -139,7 +139,7 @@ async function validateCommentId(commentId: string | null): Promise<boolean> {
 	}
 
 	const numericCommentId = parseInt(commentId)
-	if (Number.isNaN(numericCommentId)){
+	if (Number.isNaN(numericCommentId) || numericCommentId < 1){
 		return false
 	}
 
