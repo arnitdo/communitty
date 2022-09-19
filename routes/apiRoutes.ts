@@ -76,7 +76,9 @@ apiRouter.use(requestRateLimiter)
 
 apiRouter.use((req: Request, res: Response, next: NextFunction) => {
 	// TS might take the Web API Response type definitions
-	// So redirect it to express response using e.Response
+	// So redirect it to express response using e.
+
+	// Disable caching. This ensures our API data is fresh
 	res.header("Cache-Control", 'no-cache')
 	next()
 })

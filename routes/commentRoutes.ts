@@ -649,6 +649,7 @@ commentRouter.post(
 	"/:commentId/likes",
 	[
 		middleware.needsToken,
+		middleware.needsActivatedUser,
 		middleware.needsURLParams("commentId"),
 		middleware.needsValidComment
 	],
@@ -659,6 +660,7 @@ commentRouter.delete(
 	"/:commentId/likes",
 	[
 		middleware.needsToken,
+		middleware.needsActivatedUser,
 		middleware.needsURLParams("commentId"),
 		middleware.needsValidComment
 	],
