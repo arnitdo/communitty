@@ -682,6 +682,7 @@ async function dislikePost(req: Request, res: Response): Promise<void> {
 		})
 	} catch (err){
 		console.error(err)
+		await db.query("ROLLBACK;")
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
 		})
