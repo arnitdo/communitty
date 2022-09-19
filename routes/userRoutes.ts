@@ -10,7 +10,7 @@ async function redirectToUserProfile(req: Request, res: Response): Promise<void>
 		const userProfileURL = `/api/users/${currentAuthUser}/profile`
 
 		res.redirect(userProfileURL)
-	} catch (err){
+	} catch (err) {
 		console.error(err)
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
@@ -28,12 +28,35 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 			[userName]
 		)
 
-		if (rows.length == 0){
-			// No user exists with that username
-			res.status(404).json({
-				"actionResult": "ERR_USER_NOT_FOUND"
-			})
-			return
+		// The authenticated user is following `userName` or not
+		let followingUser: boolean = false
+
+		// `userName` is following the authenticated user or not
+		let followedByUser: boolean = false
+		if (req.header("Authorization")){
+			const requestUser = getAuthenticatedUser(req)
+			{
+				const {rows} = await db.query(
+					"SELECT 1 FROM profile_follows WHERE following_username = $1 AND follower_username = $2;",
+					[userName, requestUser]
+				)
+
+				if (rows.length == 1) {
+					followingUser = true
+				}
+			}
+			// Using some scope trickery to avoid redeclaration
+			{
+				const {rows}  = await db.query(
+					"SELECT 1 FROM profile_follows WHERE following_username = $1 AND follower_username = $2;",
+					[requestUser, userName]
+					// Note the flipped values
+				)
+
+				if (rows.length == 1){
+					followedByUser = true
+				}
+			}
 		}
 
 		const userProfileData = rows[0]
@@ -43,15 +66,19 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 		const finalUserData = {
 			// We'll be adding a few helpful hints to other profile data
 			...normalizedUserProfileData,
+			"followingUser": followingUser,
+			"followedByUser": followedByUser,
 			"userPosts": `/api/users/${userName}/posts`,
-			"userComments": `/api/users/${userName}/comments`
+			"userComments": `/api/users/${userName}/comments`,
+			"userFollowers": `/api/users/${userName}/followers`,
+			"userFollowing": `/api/users/${userName}/following`
 		}
 
 		res.status(200).json({
 			"actionResult": "SUCCESS",
 			"profileData": finalUserData
 		})
-	} catch (err){
+	} catch (err) {
 		console.error(err)
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
@@ -69,23 +96,13 @@ async function redirectToUserAvatar(req: Request, res: Response): Promise<void> 
 			[userName]
 		)
 
-		if (rows.length == 0){
-			// If the user doesn't exist, we could maybe redirect it to the default user avatar too?
-			// Open to contributions
-			// We'll send a 404 as of now
-			res.status(404).json({
-				"actionResult": "ERR_USER_NOT_FOUND"
-			})
-			return
-		}
-
 		const userData = rows[0]
 		const userAvatarURL = userData.avatar_url
 
 		// And sendoff!
 		res.redirect(userAvatarURL)
 
-	} catch (err){
+	} catch (err) {
 		console.error(err)
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
@@ -99,7 +116,7 @@ async function getUserPosts(req: Request, res: Response): Promise<void> {
 		const {userName} = req.params
 		const postPage = req.query.postPage as string || "1"
 		const parsedPostPage = Number.parseInt(postPage)
-		if (Number.isNaN(parsedPostPage) || parsedPostPage < 1){
+		if (Number.isNaN(parsedPostPage) || parsedPostPage < 1) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["postPage"]
@@ -139,7 +156,7 @@ async function getUserComments(req: Request, res: Response): Promise<void> {
 		const {userName} = req.params
 		const commentPage = req.query.commentPage as string || "1"
 		const parsedCommentPage = Number.parseInt(commentPage)
-		if (Number.isNaN(parsedCommentPage) || parsedCommentPage < 0){
+		if (Number.isNaN(parsedCommentPage) || parsedCommentPage < 0) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["commentPage"]
@@ -165,7 +182,7 @@ async function getUserComments(req: Request, res: Response): Promise<void> {
 			"actionResult": "SUCCESS",
 			"userComments": normalizedRows
 		})
-	} catch (err){
+	} catch (err) {
 		console.error(err)
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
@@ -173,20 +190,79 @@ async function getUserComments(req: Request, res: Response): Promise<void> {
 	}
 }
 
-
-async function getUserFollows(req: Request, res: Response): Promise<void> {
+async function getUserFollowers(req: Request, res: Response): Promise<void> {
 	try {
 		const {userName} = req.params
-		const followPage = req.query.followPage as string || "1"
+		const followerPage = req.query.followerPage as string || "1"
 
-		const parsedFollowPage = Number.parseInt(followPage)
-		if (Number.isNaN(parsedFollowPage)){
+		const parsedFollowerPage = Number.parseInt(followerPage)
+		if (Number.isNaN(parsedFollowerPage) || parsedFollowerPage < 1) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": ["followPage"]
+				"invalidProperties": ["followerPage"]
 			})
+			return
 		}
-	} catch (err){
+
+		const followerPageOffset = ((parsedFollowerPage - 1) * 10)
+
+		const {rows} = await db.query(
+			"SELECT follower_username, follow_since FROM profile_follows WHERE following_username = $1 OFFSET $2 LIMIT 10;",
+			[userName, followerPageOffset]
+		)
+
+		const followerUserData = rows.map((row) => {
+			return {
+				"userName": row.follower_username,
+				"followerSince": row.follow_since
+			}
+		})
+
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"followerUsers": followerUserData
+		})
+	} catch (err) {
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function getFollowingUsers(req: Request, res: Response): Promise<void> {
+	try {
+		const {userName} = req.params
+		const followingPage = req.query.followingPage as string || "1"
+
+		const parsedFollowingPage = Number.parseInt(followingPage)
+		if (Number.isNaN(parsedFollowingPage) || parsedFollowingPage < 1) {
+			res.status(400).json({
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": ["followingPage"]
+			})
+			return
+		}
+
+		const followingPageOffset = ((parsedFollowingPage - 1) * 10)
+
+		const {rows} = await db.query(
+			"SELECT following_username, follow_since FROM profile_follows WHERE follower_username = $1 OFFSET $2 LIMIT 10;",
+			[userName, followingPageOffset]
+		)
+
+		const followingUserData = rows.map((row) => {
+			return {
+				"userName": row.following_username,
+				"followingSince": row.follow_since
+			}
+		})
+
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"followingUsers": followingUserData
+		})
+	} catch (err) {
 		console.error(err)
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
@@ -196,9 +272,56 @@ async function getUserFollows(req: Request, res: Response): Promise<void> {
 
 async function followUser(req: Request, res: Response): Promise<void> {
 	try {
+		const {userName} = req.params
+		const followerUser = getAuthenticatedUser(req)
 
-	} catch (err){
+		// You can't follow yourself.
+		if (userName == followerUser){
+			res.status(400).json({
+				"actionResult": "ERR_SELF_FOLLOW"
+			})
+			return
+		}
+
+		// Check if already following
+		const {rows} = await db.query(
+			"SELECT 1 FROM profile_follows WHERE following_username = $1 AND follower_username = $2;",
+			[userName, followerUser]
+		)
+
+		if (rows.length == 1) {
+			res.status(400).json({
+				"actionResult": "ERR_ALREADY_FOLLOWED"
+			})
+			return
+		}
+
+		await db.query("BEGIN;")
+
+		// Insert following relationship
+		await db.query(
+			"INSERT INTO profile_follows VALUES ($1, $2, NOW());",
+			[userName, followerUser]
+		)
+
+		// Update follower counts
+		await db.query(
+			"UPDATE profiles SET follower_count = follower_count + 1 WHERE username = $1;",
+			[userName]
+		)
+
+		// Update following counts
+		await db.query(
+			"UPDATE profiles SET following_count = following_count + 1 WHERE username = $1;",
+			[followerUser]
+		)
+		await db.query("COMMIT;")
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err) {
 		console.error(err)
+		await db.query("ROLLBACK;")
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
 		})
@@ -208,8 +331,51 @@ async function followUser(req: Request, res: Response): Promise<void> {
 async function unfollowUser(req: Request, res: Response): Promise<void> {
 	try {
 		const {userName} = req.params
-	} catch (err){
+		const followerUser = getAuthenticatedUser(req)
+
+		if (userName == followerUser){
+			res.status(400).json({
+				"actionResult": "ERR_SELF_UNFOLLOW"
+			})
+			return
+		}
+
+		const {rows} = await db.query(
+			"SELECT 1 FROM profile_follows WHERE following_username = $1 AND follower_username = $2;",
+			[userName, followerUser]
+		)
+
+		if (rows.length == 0) {
+			res.status(400).json({
+				"actionResult": "ERR_NOT_FOLLOWED"
+			})
+			return
+		}
+
+		await db.query("BEGIN;")
+
+		await db.query(
+			"DELETE FROM profile_follows WHERE following_username = $1 AND follower_username = $2;",
+			[userName, followerUser]
+		)
+
+		await db.query(
+			"UPDATE profiles SET follower_count = follower_count - 1 WHERE username = $1;",
+			[userName]
+		)
+
+		await db.query(
+			"UPDATE profiles SET following_count = following_count - 1 WHERE username = $1;",
+			[followerUser]
+		)
+		await db.query("COMMIT;")
+
+		res.status(200).json({
+			"actionResult": "SUCCESS"
+		})
+	} catch (err) {
 		console.error(err)
+		await db.query("ROLLBACK;")
 		res.status(500).json({
 			"actionResult": "ERR_INTERNAL_ERROR"
 		})
@@ -232,6 +398,7 @@ userRouter.get(
 userRouter.get(
 	"/:userName/profile",
 	[
+		middleware.optionalToken,
 		middleware.needsURLParams("userName"),
 		middleware.needsValidUser
 	],
@@ -263,6 +430,46 @@ userRouter.get(
 		middleware.needsValidUser
 	],
 	getUserComments
+)
+
+userRouter.get(
+	"/:userName/followers",
+	[
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
+	],
+	getUserFollowers
+)
+
+userRouter.get(
+	"/:userName/following",
+	[
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
+	],
+	getFollowingUsers
+)
+
+userRouter.post(
+	"/:userName/follows",
+	[
+		middleware.needsToken,
+		middleware.needsActivatedUser,
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
+	],
+	followUser
+)
+
+userRouter.delete(
+	"/:userName/follows",
+	[
+		middleware.needsToken,
+		middleware.needsActivatedUser,
+		middleware.needsURLParams("userName"),
+		middleware.needsValidUser
+	],
+	unfollowUser
 )
 
 export {
