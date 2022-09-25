@@ -1,7 +1,7 @@
 import {db} from '../utils/db'
 import {Request, Response, Router} from "express";
 import * as middleware from "../utils/middleware";
-import {getAuthenticatedUser, normalizeObjectKeys} from "../utils/common";
+import {getAuthenticatedUser, hasAuthToken, normalizeObjectKeys} from "../utils/common";
 
 async function redirectToUserProfile(req: Request, res: Response): Promise<void> {
 	try {
@@ -33,7 +33,7 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 
 		// `userName` is following the authenticated user or not
 		let followedByUser: boolean = false
-		if (req.header("Authorization")){
+		if (hasAuthToken(req)){
 			const requestUser = getAuthenticatedUser(req)
 			{
 				const {rows} = await db.query(

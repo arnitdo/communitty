@@ -1,6 +1,6 @@
 import {db} from "../utils/db"
 import {Router, Request, Response} from "express"
-import {getAuthenticatedUser, normalizeObjectKeys, validateCommentId, validatePostId} from "../utils/common";
+import {getAuthenticatedUser, hasAuthToken, normalizeObjectKeys, validateCommentId, validatePostId} from "../utils/common";
 import * as middleware from "../utils/middleware"
 
 const validCommentTypes = ["ROOT", "REPLY"]
@@ -180,7 +180,7 @@ async function getPostComments(req: Request, res: Response): Promise<void> {
 
 		let currentUser: string | null = null
 
-		if (req.header("Authorization")){
+		if (hasAuthToken(req)){
 			currentUser = getAuthenticatedUser(req)
 		}
 
@@ -257,7 +257,7 @@ async function getComment(req: Request, res: Response): Promise<void> {
 		let currentUser: string | null = null
 		let commentLikeStatus: boolean = false
 
-		if (req.header("Authorization")){
+		if (hasAuthToken(req)){
 			currentUser = getAuthenticatedUser(req)
 
 			const {rows} = await db.query(
@@ -327,7 +327,7 @@ async function getCommentTree(req: Request, res: Response): Promise<void> {
 		let currentUser: string | null = null
 		let commentLikeStatus: boolean = false
 
-		if (req.header("Authorization")) {
+		if (hasAuthToken(req)) {
 			currentUser = getAuthenticatedUser(req)
 
 			const {rows} = await db.query(

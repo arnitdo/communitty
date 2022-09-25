@@ -1,6 +1,6 @@
 import {db} from '../utils/db'
 import {Request, Response, Router} from 'express'
-import {getAuthenticatedUser, normalizeObjectKeys, PropertyValidatorType, validateProperties} from "../utils/common"
+import {getAuthenticatedUser, hasAuthToken ,normalizeObjectKeys, PropertyValidatorType, validateProperties} from "../utils/common"
 import * as url from 'node:url'
 import * as middleware from "../utils/middleware"
 
@@ -312,7 +312,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
 		let postLikeStatus: boolean = false
 
 		// Additional: Check if the current authenticated user has liked this post
-		if (req.header("Authorization")){
+		if (hasAuthToken(req)){
 			// Auth validity will be checked by optionalToken middleware
 			const currentAuthUser = getAuthenticatedUser(req)
 
@@ -521,7 +521,7 @@ async function getPostSearches(req: Request, res: Response): Promise<void> {
 
 		let searcherUsername: string | null = null;
 
-		if (req.header("Authorization")){
+		if (hasAuthToken(req)){
 			searcherUsername = getAuthenticatedUser(req)
 		}
 

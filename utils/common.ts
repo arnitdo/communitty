@@ -212,6 +212,13 @@ function normalizeObjectKeys(obj: any, skipValueKeys?: string[]): any {
 	return clonedObject
 }
 
+function hasAuthToken(req: Request){
+	if (req.header("Authorization") != null){
+		return true
+	}
+	return false
+}
+
 export {
 	baseURL,
 	PropertyValidatorType,
@@ -223,5 +230,6 @@ export {
 	validatePostId,
 	validateCommentId,
 	validateUsername,
-	normalizeObjectKeys
+	normalizeObjectKeys,
+	hasAuthToken
 }
