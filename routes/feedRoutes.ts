@@ -17,9 +17,11 @@ async function getFeed(req: Request, res: Response){
 		const feedPageOffset = ((parsedFeedPage - 1) * 10)
 
 		let currentUser: string | null = null
+
+		let feedFallback: boolean = false
+
 		if (hasAuthToken(req)){
 			currentUser = getAuthenticatedUser(req)
-
 			/* Important: Check if the user is following anyone */
 			const {rows} = await db.query(
 				"SELECT following_count FROM profiles WHERE username = $1;",
@@ -50,6 +52,7 @@ async function getFeed(req: Request, res: Response){
 
 			res.status(200).json({
 				"actionResult": "SUCCESS",
+				"feedFallback": feedFallback,
 				"feedData": normalizedRows
 			})
 		} else {
@@ -70,6 +73,7 @@ async function getFeed(req: Request, res: Response){
 
 				res.status(200).json({
 					"actionResult": "SUCCESS",
+					"feedFallback": feedFallback,
 					"feedData": normalizedRows
 				})
 			} else {
@@ -78,6 +82,7 @@ async function getFeed(req: Request, res: Response){
 				// Fallback to posts from non-following users
 				// Exclude posts from following users, since they are already viewed
 				// We don't want the user to see the same posts a hundred times
+				feedFallback = true
 				const fallbackPage = req.query.fallbackPage as string || "1"
 				const parsedFallbackPage = Number.parseInt(fallbackPage)
 				if (Number.isNaN(parsedFallbackPage) || parsedFallbackPage < 1){
@@ -105,7 +110,8 @@ async function getFeed(req: Request, res: Response){
 				})
 
 				res.status(200).json({
-					"actionResult": "FALLBACK_SUCCESS",
+					"actionResult": "SUCCESS",
+					"feedFallback": feedFallback,
 					"feedData": normalizedRows
 				})
 			}
