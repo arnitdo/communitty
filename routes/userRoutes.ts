@@ -134,7 +134,7 @@ async function getUserPosts(req: Request, res: Response): Promise<void> {
 		const normalizedRows = rows.map((row) => {
 			return normalizeObjectKeys(
 				row,
-				['post_modified_time']
+				['post_tags', 'post_modified_time']
 			)
 		})
 
