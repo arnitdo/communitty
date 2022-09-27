@@ -46,7 +46,7 @@ async function getFeed(req: Request, res: Response){
 			const normalizedRows = rows.map((row) => {
 				return normalizeObjectKeys(
 					row,
-					['post_modified_time']
+					['post_tags', 'post_modified_time']
 				)
 			})
 
@@ -67,7 +67,7 @@ async function getFeed(req: Request, res: Response){
 			if (rows.length != 0){
 				const normalizedRows = rows.map((row) => {
 					return normalizeObjectKeys(
-						row, ['post_modified_time']
+						row, ['post_tags', 'post_modified_time']
 					)
 				})
 
@@ -105,7 +105,7 @@ async function getFeed(req: Request, res: Response){
 				const normalizedRows = rows.map((row) => {
 					return normalizeObjectKeys(
 						row,
-						['post_modified_time']
+						['post_tags', 'post_modified_time']
 					)
 				})
 
