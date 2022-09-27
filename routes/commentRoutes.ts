@@ -473,6 +473,31 @@ async function likeComment(req: Request, res: Response): Promise<void> {
 		const {commentId} = req.params
 		const currentUser = getAuthenticatedUser(req)
 
+		let postId = req.params.postId
+
+		if (postId){
+			const {rows} = await db.query(
+				"SELECT 1 FROM comments WHERE comment_id = $1 AND comment_parent_post = $2",
+				[commentId, postId]
+			)
+			if (rows.length == 0){
+				res.status(400).json({
+					"actionResult": "ERR_INVALID_PROPERTIES",
+					"invalidProperties": ["postId", "commentId"]
+				})
+				return
+			}
+		} else {
+			const {rows} = await db.query(
+				"SELECT comment_parent_post FROM comments WHERE comment_id = $1",
+				[commentId]
+			)
+
+			// Rows is guaranteed, with `needsValidPost` middleware
+			const commentParentPost = rows[0].comment_parent_post
+			postId = commentParentPost
+		}
+
 		// Check if the current user has already liked the comment
 		const {rows} = await db.query(
 			"SELECT 1 FROM comment_likes WHERE comment_id = $1 AND username = $2;",
@@ -495,8 +520,8 @@ async function likeComment(req: Request, res: Response): Promise<void> {
 			[commentId]
 		)
 		await db.query(
-			"INSERT INTO comment_likes VALUES ($1, $2);",
-			[commentId, currentUser]
+			"INSERT INTO comment_likes VALUES ($1, $2, $3);",
+			[postId, commentId, currentUser]
 		)
 		await db.query("COMMIT;")
 
@@ -516,6 +541,31 @@ async function dislikeComment(req: Request, res: Response): Promise<void> {
 	try {
 		const {commentId} = req.params
 		const currentUser = getAuthenticatedUser(req)
+
+		let postId = req.params.postId
+
+		if (postId){
+			const {rows} = await db.query(
+				"SELECT 1 FROM comments WHERE comment_id = $1 AND comment_parent_post = $2",
+				[commentId, postId]
+			)
+			if (rows.length == 0){
+				res.status(400).json({
+					"actionResult": "ERR_INVALID_PROPERTIES",
+					"invalidProperties": ["postId", "commentId"]
+				})
+				return
+			}
+		} else {
+			const {rows} = await db.query(
+				"SELECT comment_parent_post FROM comments WHERE comment_id = $1",
+				[commentId]
+			)
+
+			// Rows is guaranteed, with `needsValidPost` middleware
+			const commentParentPost = rows[0].comment_parent_post
+			postId = commentParentPost
+		}
 
 		// Check if the current user has already liked the comment
 		const {rows} = await db.query(
@@ -537,8 +587,8 @@ async function dislikeComment(req: Request, res: Response): Promise<void> {
 			[commentId]
 		)
 		await db.query(
-			"DELETE FROM comment_likes WHERE comment_id = $1 AND username = $2;",
-			[commentId, currentUser]
+			"DELETE FROM comment_likes WHERE parent_post_id = $1 AND comment_id = $2 AND username = $3;",
+			[postId, commentId, currentUser]
 		)
 		await db.query("COMMIT;")
 
