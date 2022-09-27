@@ -1,21 +1,22 @@
 import {db} from '../utils/db'
 import {Request, Response, Router} from 'express'
 import {getAuthenticatedUser, hasAuthToken ,normalizeObjectKeys, PropertyValidatorType, validateProperties} from "../utils/common"
+import fetch from "node-fetch"
 import * as url from 'node:url'
 import * as middleware from "../utils/middleware"
 
 // IMPORTANT: Comment router is managed through the post router
 import {commentRouter} from "./commentRoutes";
 
-type PostType = "TEXT_POST"	| "LINK_POST" 	| "IMAGE_POST"	| "VIDEO_POST"
+type PostType = "TEXT_POST"	| "LINK_POST" 	| "IMAGE_POST"
 type SortType = "SORT_TOP"	| "SORT_HOT"	| "SORT_NEW"
 
-const validPostTypes: PostType[] = ["TEXT_POST", "LINK_POST", "IMAGE_POST", "VIDEO_POST"]
+const validPostTypes: PostType[] = ["TEXT_POST", "LINK_POST", "IMAGE_POST"]
 const validSortTypes: SortType[] = ["SORT_TOP", "SORT_HOT", "SORT_NEW"]
 
 type PostSearchParamType = {
 	sortType: SortType,							// Sort Type : Hot, New or Top							Default: Hot
-	postType: PostType | "ALL_POSTS",			// Post Type : Text, Link, Image or Video, or all posts	Default: All
+	postType: PostType | "ALL_POSTS",			// Post Type : Text, Link, Image or all posts	Default: All
 	searchQuery: string | null | undefined,		// Search Query : null (all posts) or specific keywords	Default: null
 	searchPage: number							// Paginated Search Results : Pages of 10 posts			Default: 1 (Posts 1 to 10)
 }
@@ -102,7 +103,7 @@ async function searchPosts(searchParams: PostSearchParamType, searcherUsername: 
 
 			const normalizedPostData = normalizeObjectKeys(
 					row,
-					['post_modified_time']
+					['post_tags', 'post_modified_time']
 			)
 
 			return {
@@ -208,7 +209,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 		if (postType != "TEXT_POST") {
 			try {
 				// Note that the post body must be a valid URL in case of
-				// Link, Image or Video posts
+				// Link or Image posts
 				// URL.constructor() errs when an invalid URL is provided
 				const bodyURL = new url.URL(postBody)
 
@@ -231,9 +232,41 @@ async function createPost(req: Request, res: Response): Promise<void> {
 					return
 				}
 
+				if (postType == "IMAGE_POST"){
+					// use ModerateContent.com to filter out inappropriate images
+					const contentResponse = await fetch(
+						`https://api.moderatecontent.com/moderate/?key=${process. env.MODERATE_CONTENT_API_KEY}&url=${postBody}`,
+						{
+							signal: null
+						}
+					)
+
+					const contentResponseJSON = await contentResponse.json()
+					const {rating_index, error_code} = contentResponseJSON
+					if (error_code > 0){
+						res.status(400).json({
+							"actionResult": "ERR_INVALID_PROPERTIES",
+							"invalidProperties": ["postBody"]
+						})
+						return
+					}
+
+					if (rating_index > 2){
+						/*
+						1: Everyone
+						2: Teen
+						3: Adult
+						 */
+						// Disallow adult posts
+						res.status(400).json({
+							"actionResult": "ERR_INAPPROPRIATE_CONTENT"
+						})
+						return
+					}
+				}
+
 				const contentTypeMap = {
 					"IMAGE_POST": "image",
-					"VIDEO_POST": "video",
 					"LINK_POST" : "application"
 				}
 
@@ -250,8 +283,10 @@ async function createPost(req: Request, res: Response): Promise<void> {
 					})
 					return
 				}
-			} catch (err: any) {
-				if (err instanceof TypeError || err.code == "ERR_INVALID_URL") {
+			} catch (err: any){
+				console.log(err)
+				// @ts-ignore
+				if (err instanceof TypeError && err.code == "ERR_INVALID_URL") {
 					res.status(400).json({
 						"actionResult": "ERR_INVALID_PROPERTIES",
 						"invalidProperties": ["postBody"]
@@ -328,7 +363,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
 		const normalizedPostData = normalizeObjectKeys(
 			postData,
-			["post_modified_time"]
+			['post_tags', 'post_modified_time']
 		)
 
 		const finalPostData = {
@@ -368,7 +403,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 		if (postType != "TEXT_POST") {
 			try {
 				// Note that the post body must be a valid URL in case of
-				// Link, Image or Video posts
+				// Link or Image posts
 				// URL.constructor() errs when an invalid URL is provided
 				const bodyURL = new url.URL(postBody)
 
@@ -382,9 +417,41 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 					return
 				}
 
+				if (postType == "IMAGE_POST"){
+					// use ModerateContent.com to filter out inappropriate images
+					const contentResponse = await fetch(
+						`https://api.moderatecontent.com/moderate/?key=${process. env.MODERATE_CONTENT_API_KEY}&url=${postBody}`,
+						{
+							signal: null
+						}
+					)
+
+					const contentResponseJSON = await contentResponse.json()
+					const {rating_index, error_code} = contentResponseJSON
+					if (error_code > 0){
+						res.status(400).json({
+							"actionResult": "ERR_INVALID_PROPERTIES",
+							"invalidProperties": ["postBody"]
+						})
+						return
+					}
+
+					if (rating_index > 2){
+						/*
+						1: Everyone
+						2: Teen
+						3: Adult
+						 */
+						// Disallow adult posts
+						res.status(400).json({
+							"actionResult": "ERR_INAPPROPRIATE_CONTENT",
+						})
+						return
+					}
+				}
+
 				const contentTypeMap = {
 					"IMAGE_POST": "image",
-					"VIDEO_POST": "video",
 					"LINK_POST" : "application"
 				}
 
@@ -434,7 +501,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 			"post_body = $2, " +
 			"post_tags = $3, " +
 			"post_modified_time = NOW(), " +
-			"edited = TRUE " +
+			"post_edited = TRUE " +
 			"WHERE post_id = $4;",
 			[postTitle, postBody, postTags, postId]
 		)
@@ -468,6 +535,12 @@ async function deletePost(req: Request, res: Response): Promise<void> {
 		// Delete related comments too!
 		await db.query(
 			"DELETE FROM comments WHERE comment_parent_post = $1;",
+			[postId]
+		)
+
+		// Delete related comment likes
+		await db.query(
+			"DELETE FROM comment_likes WHERE parent_post_id = $1;",
 			[postId]
 		)
 

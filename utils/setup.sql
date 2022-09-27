@@ -34,16 +34,15 @@ CREATE TABLE IF NOT EXISTS posts (
     post_id SERIAL PRIMARY KEY, -- Auto-generated post id
     post_author TEXT NOT NULL,       -- Post author username
     post_type TEXT NOT NULL CHECK(
-            post_type IN ('TEXT_POST', 'LINK_POST', 'IMAGE_POST', 'VIDEO_POST')
-    ),                               -- Type of post - Text, Link, Image, or Video
+            post_type IN ('TEXT_POST', 'LINK_POST', 'IMAGE_POST')
+    ),                               -- Type of post - Text, Link or Image
     post_title TEXT NOT NULL,        -- Title of the post
     post_body TEXT NOT NULL,         -- Body of the post
         -- For text posts, content will be the entire body of the post
         -- For link posts, content will be the target URL
         -- For image posts, content will be the Image URL
-        -- For video posts, content will be the Video URL
-        -- Having an external site (such as streamable, vimeo, etc.) host digital content is better
-        -- We don't have to worry about CSAM being uploaded directly, the content provider will (hopefully) filter it out for us
+        -- We don't have to worry about abusive material being uploaded directly, the content provider will (hopefully) filter it out for us
+        -- We'll also use content moderation for images
         -- Any reported cases will still be handled manually
     post_tags TEXT[4] DEFAULT '{}', -- Post tags, for SEO / metadata searching
         -- Allow only upto 4 tags, no more!
@@ -95,9 +94,11 @@ CREATE TABLE IF NOT EXISTS post_likes (
 );
 
 CREATE TABLE IF NOT EXISTS comment_likes (
+    parent_post_id INTEGER NOT NULL,
     comment_id INTEGER NOT NULL,
     username TEXT NOT NULL,
 
+    CONSTRAINT fk_parent_post_id FOREIGN KEY (parent_post_id) REFERENCES posts(post_id),
     CONSTRAINT fk_like_post_id FOREIGN KEY (comment_id) REFERENCES comments(comment_id),
     CONSTRAINT fk_like_username FOREIGN KEY (username) REFERENCES accounts(username)
 );
