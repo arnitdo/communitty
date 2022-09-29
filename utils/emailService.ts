@@ -38,4 +38,35 @@ async function sendActivationMail(emailRecipient: string, userName: string, acti
 	}
 }
 
-export {sendActivationMail}
+async function sendPasswordResetMail(emailRecipient: string, userName: string, resetToken: string): Promise<void> {
+	const urlEncodedUsername: string = encodeURIComponent(userName)
+	const urlEncodedToken: string = encodeURIComponent(resetToken)
+	// Get base URL (In case of dev / prod environments)
+	const baseURLString: string = baseURL()
+	// Concatenate to form activation URL
+	const resetURL: string = baseURLString + "/reset_password?userName=" + urlEncodedUsername + "&resetToken=" + urlEncodedToken
+	// Craft activation email
+	const resetMessage: object = {
+		to: emailRecipient,
+		from: "join.communitty@gmail.com",
+		subject: "Communitty Password Reset",
+		text:
+			`Looks like you need to reset your Communitty password!`  								+
+			`\n\nDon't worry! We've got you covered! Click the link below to reset your password.`   +
+			`\nThe link will expire in 15 minutes. If you haven't initiated the password reset procedure, you can safely ignore this message.`         																			+
+			`\n\n${resetURL}`
+	}
+	try {
+		// @ts-ignore
+		// And sendoff!
+		const emailResponse = await emailService.send(resetMessage)
+	} catch (err) {
+		// Log the error, if any
+		console.error(err)
+	}
+}
+
+export {
+	sendActivationMail,
+	sendPasswordResetMail
+}

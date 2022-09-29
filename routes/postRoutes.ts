@@ -284,7 +284,6 @@ async function createPost(req: Request, res: Response): Promise<void> {
 					return
 				}
 			} catch (err: any){
-				console.log(err)
 				// @ts-ignore
 				if (err instanceof TypeError && err.code == "ERR_INVALID_URL") {
 					res.status(400).json({
@@ -867,3 +866,5 @@ postRouter.use(
 export {
 	postRouter
 }
+
+// TODO: Echo current page when responding

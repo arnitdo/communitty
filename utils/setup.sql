@@ -13,6 +13,13 @@ CREATE TABLE IF NOT EXISTS accounts (
     activated BOOLEAN DEFAULT FALSE           -- Account activation status (default false for all new accounts)
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    username TEXT NOT NULL,
+    reset_token TEXT NOT NULL,
+    valid_upto TIMESTAMPTZ NOT NULL,
+    CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES accounts(username)
+);
+
 CREATE TABLE IF NOT EXISTS profiles (
     username TEXT NOT NULL,                             -- username (from accounts)
     full_name TEXT NOT NULL,                            -- Full name of user
@@ -26,7 +33,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE TABLE IF NOT EXISTS inactive_accounts (
     username TEXT NOT NULL,
-    activationToken TEXT NOT NULL,
+    activation_token TEXT NOT NULL,
     CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES accounts(username)
 );
 

@@ -1,5 +1,5 @@
 import {db} from "../utils/db"
-import {sendActivationMail} from "../utils/emailService"
+import {sendActivationMail, sendPasswordResetMail} from "../utils/emailService"
 import {sign} from "jsonwebtoken"
 import {hash, compare} from "bcrypt"
 import {Router, Request, Response} from "express"
@@ -93,13 +93,24 @@ async function isDuplicateUser(userName: string, userMail: string): Promise<bool
 	return [isDuplicateUserName, isDuplicateUserMail]
 }
 
-function generateActivationToken(userName: string) {
+function generateActivationToken(userName: string): string{
 	// Returns SHA-256 hash of username
 	const activationToken = crypto
 		.createHash("sha256")
 		.update(userName)
 		.digest("hex")
 	return activationToken
+}
+
+function generatePasswordResetToken(userName: string): string {
+	const now = new Date()
+	// Make the token unique using the current timestamp appended to the username
+	const resetTokenData = `${userName}.${now.toString()}`
+	const passwordResetToken = crypto
+		.createHash("sha256")
+		.update(resetTokenData)
+		.digest("hex")
+	return passwordResetToken
 }
 
 async function userSignup(req: Request, res: Response): Promise<void> {
@@ -317,6 +328,120 @@ async function userTokenRefresh(req: Request, res: Response): Promise<void> {
 	}
 }
 
+async function forgotPassword(req: Request, res: Response): Promise<void> {
+	// Sends a URL to reset the password of the given user
+	try {
+		const {userMail} = req.body // Guaranteed with needsBodyParams
+
+		const {rows} = await db.query(
+			"SELECT username FROM accounts WHERE email = $1;",
+			[userMail]
+		)
+
+		if (rows.length == 0){
+			res.status(400).json({
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": ["userMail"]
+			})
+		} else {
+			const userName = rows[0].username
+			const resetToken = generatePasswordResetToken(userName)
+			const validUpto = new Date()
+			// Reset validity is only upto 15 minutes from issue
+			validUpto.setMinutes(
+				validUpto.getMinutes() + 15
+			) // Date will automatically adjust hour/day/month/year overflows
+
+			await db.query("BEGIN")
+
+			// Delete previous password reset attempts
+			await db.query(
+				"DELETE FROM password_reset_tokens WHERE username = $1",
+				[userName]
+			)
+
+			await db.query(
+				"INSERT INTO password_reset_tokens VALUES ($1, $2, $3);",
+				[userName, resetToken, validUpto]
+			)
+
+			await sendPasswordResetMail(userMail, userName, resetToken)
+			await db.query("COMMIT")
+			res.status(200).json({
+				"actionResult": "SUCCESS"
+			})
+		}
+	} catch (err){
+		await db.query("ROLLBACK;")
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
+async function resetPassword(req: Request, res: Response): Promise<void> {
+	try {
+		const {userName, resetToken, newPassword} = req.body
+
+		const {rows} = await db.query(
+			"SELECT valid_upto FROM password_reset_tokens WHERE username = $1 AND reset_token = $2",
+			[userName, resetToken]
+		)
+
+		if (rows.length == 0){
+			res.status(400).json({
+				"actionResult": "ERR_INVALID_PROPERTIES",
+				"invalidProperties": ["userName", "resetToken"]
+			})
+		} else {
+			const validUpto = rows[0].valid_upto
+			const validUptoDateTime = new Date(validUpto)
+			const validUptoTS = validUptoDateTime.getTime()
+			const nowTS = Date.now()
+			if (nowTS > validUptoTS){
+				res.status(400).json({
+					"actionResult": "ERR_INVALID_PROPERTIES",
+					"invalidProperties": ["resetToken"]
+				})
+			} else {
+				const isValidPassword = validatePassword(newPassword)
+				if (isValidPassword == false){
+					res.status(400).json({
+						"actionResult": "ERR_INVALID_PROPERTIES",
+						"invalidProperties": ["newPassword"]
+					})
+					return
+				}
+
+				const hashedPassword = await hash(newPassword, 10)
+
+				await db.query("BEGIN")
+				await db.query(
+					"UPDATE accounts SET password = $1 WHERE username = $2;",
+					[hashedPassword, userName]
+				)
+
+				// Delete all password reset attempts
+				await db.query(
+					"DELETE FROM password_reset_tokens WHERE username = $1;",
+					[userName]
+				)
+				await db.query("COMMIT")
+				res.status(200).json({
+					"actionResult": "SUCCESS"
+				})
+			}
+		}
+	} catch (err){
+		await db.query("ROLLBACK;")
+		console.error(err)
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
 const authRouter = Router()
 
 authRouter.post(
@@ -339,6 +464,18 @@ authRouter.post(
 	"/token_refresh",
 	middleware.needsBodyParams("authToken", "refreshToken"),
 	userTokenRefresh
+)
+
+authRouter.post(
+	"/forgot_password",
+	middleware.needsBodyParams("userMail"),
+	forgotPassword
+)
+
+authRouter.post(
+	"/reset_password",
+	middleware.needsBodyParams("userName", "resetToken", "newPassword"),
+	resetPassword
 )
 
 export {
