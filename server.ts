@@ -7,7 +7,6 @@ import {db} from "./utils/db";
 
 import {apiRouter} from "./routes/apiRoutes";
 import {clientRouter} from "./routes/clientRoutes";
-import {NextFunction} from "express";
 
 // Initialize ExpressJS App
 const app = express()
