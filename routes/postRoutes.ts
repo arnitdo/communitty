@@ -125,8 +125,8 @@ function getTagsFromString(tagString: string): string[] {
 	// Remove all punctuation marks and other special characters
 	const strippedTagString = tagString.replace(separatorRegex, ' ')
 	let tagWords: string[] = strippedTagString.split(' ')
-	tagWords.forEach((tagWord: string, wordIndex: number) => {
-		tagWords[wordIndex] = tagWord
+	tagWords = tagWords.map((tagWord: string) => {
+		return tagWord
 			.toLowerCase()
 			.trim()
 	})
@@ -303,6 +303,12 @@ async function createPost(req: Request, res: Response): Promise<void> {
 							.trim()
 							.split(separatorRegex)
 							.slice(0, 4)
+			postTags = postTags.filter((postTag) => {
+				if (postTag.trim() == ""){
+					return false
+				}
+				return true
+			})
 		} else {
 			postTags = getTagsFromString(postTitle)
 		}
@@ -488,6 +494,12 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 				.trim()
 				.split(separatorRegex)
 				.slice(0, 4)
+			postTags = postTags.filter((postTag) => {
+				if (postTag.trim() == ""){
+					return false
+				}
+				return true
+			})
 		} else {
 			postTags = getTagsFromString(postTitle)
 		}
