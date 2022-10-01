@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 CREATE TABLE IF NOT EXISTS profiles (
     username TEXT NOT NULL,                             -- username (from accounts)
-    full_name TEXT NOT NULL,                            -- Full name of user
-    description TEXT DEFAULT '',                        -- Profile description, blank by default
+    profile_name TEXT NOT NULL,                         -- Full name of user
+    profile_description TEXT DEFAULT '',                -- Profile description, blank by default
     avatar_url TEXT NOT NULL,                           -- Avatar URL (Derived from gravatar)
-    account_activated BOOLEAN DEFAULT FALSE,   -- Account activation status (Linked to accounts.activated)
+    account_activated BOOLEAN DEFAULT FALSE,            -- Account activation status (Linked to accounts.activated)
     follower_count INTEGER DEFAULT 0,
     following_count INTEGER DEFAULT 0,
     CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES accounts(username)

@@ -76,8 +76,13 @@ function needsBodyParams(...requiredParams: string[]): MiddlewareType {
 			const requestParams: string[] = Object.keys(req.body);
 			let missingProperties: string[] = [];
 			for (const requiredParam of requiredParams) {
-				if (requestParams.indexOf(requiredParam) == -1) {
+				if (requestParams.indexOf(requiredParam) == -1 || req.body[requiredParam] == null){
 					missingProperties.push(requiredParam);
+				}  else {
+					const paramValue = req.body[requiredParam].toString()
+					if (paramValue.trim() == "") {
+						missingProperties.push(requiredParam)
+					}
 				}
 			}
 			if (missingProperties.length > 0) {
@@ -105,6 +110,11 @@ function needsURLParams(...requiredParams: string[]): MiddlewareType {
 			for (const requiredParam of requiredParams) {
 				if (URLParams.indexOf(requiredParam) == -1 || req.params[requiredParam] == null){
 					missingProperties.push(requiredParam)
+				} else {
+					const paramValue = req.params[requiredParam].toString()
+					if (paramValue.trim() == "") {
+						missingProperties.push(requiredParam)
+					}
 				}
 			}
 			if (missingProperties.length > 0){
