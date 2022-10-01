@@ -86,6 +86,32 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 	}
 }
 
+async function updateUserProfile(req: Request, res: Response): Promise<void> {
+	try {
+		// POST /api/users/me
+		const currentUser = getAuthenticatedUser(req)
+		// Guaranteed with needsBodyParams
+		const {profileName, profileDescription} = req.body
+
+		await db.query("BEGIN;")
+		await db.query(
+			"UPDATE profiles SET profile_name = $1, profile_description = $2 WHERE username = $3;",
+			[profileName, profileDescription, currentUser]
+		)
+		await db.query("COMMIT;")
+		res.status(200).json({
+			"actionResult": "SUCCESS",
+			"updatedProfile": `/api/users/${currentUser}/profile`
+		})
+	} catch (err){
+		console.error(err)
+		await db.query("ROLLBACK;")
+		res.status(500).json({
+			"actionResult": "ERR_INTERNAL_ERROR"
+		})
+	}
+}
+
 async function redirectToUserAvatar(req: Request, res: Response): Promise<void> {
 	try {
 		// Validated by needsURLParams
@@ -393,6 +419,15 @@ userRouter.get(
 		middleware.needsToken
 	],
 	redirectToUserProfile
+)
+
+userRouter.post(
+	"/me",
+	[
+		middleware.needsToken,
+		middleware.needsBodyParams("profileName", "profileDescription")
+	],
+	updateUserProfile
 )
 
 userRouter.get(
