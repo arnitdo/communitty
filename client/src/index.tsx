@@ -1,27 +1,23 @@
-import * as React from "react";
-import * as ReactDOMClient from "react-dom/client";
-import Helmet from "react-helmet";
+import * as React from "react"
+import * as ReactDOM from "react-dom/client"
+import {App} from "./App"
+import {ChakraProvider} from "@chakra-ui/react";
+import {QueryClient, QueryClientProvider} from "react-query";
 
-function App(): JSX.Element {
-	return (
-		<div className={"app"}>
-			<Helmet>
-				<title>Communitty</title>
-				<meta
-					name="description"
-					content="Engage with others on Communitty"
-				/>
-				<meta
-					name="keywords"
-					content="communitty, community, social media"
-				/>
-			</Helmet>
-			Welcome to communitty! This site is still under development, so check back after a while.
-		</div>
-	)
+const queryClient = new QueryClient()
+
+const container = document.getElementById("root")
+if (!container){
+	throw new Error('Failed to find the root element');
 }
+const root = ReactDOM.createRoot(container)
 
-const container = ReactDOMClient.createRoot(
-	document.getElementById("root")!
-);
-container.render(<App />)
+root.render(
+	<React.StrictMode>
+		<QueryClientProvider client={queryClient}>
+			<ChakraProvider>
+				<App />
+			</ChakraProvider>
+		</QueryClientProvider>
+</React.StrictMode>
+)
