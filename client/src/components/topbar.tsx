@@ -5,13 +5,13 @@ import {Avatar, Button, Flex, IconButton, Input, Spacer, Text} from "@chakra-ui/
 import {useAPIRequest} from "../utils/apiHandler";
 import {useNavigate} from "react-router-dom";
 
-import '../styles/topbar.css';
+import '../styles/topbar.css'
 
 function TopBar(): JSX.Element {
 
-	const response = useAPIRequest({
-		url: "/users/me",
-		useAuthentication: true
+	const {isLoading, isError, isSuccess} = useAPIRequest({
+		url: "/users/arnitdo/profile",
+		useAuthentication: false
 	})
 
 	const navigate = useNavigate()
@@ -34,7 +34,7 @@ function TopBar(): JSX.Element {
 					Search Posts
 				</IconButton>
 				<Spacer/>
-				{true ? (
+				{isLoading ? (
 					<Button>
 						<Avatar src={""}></Avatar>
 						<Text style={

@@ -1,6 +1,6 @@
 import {useState, useEffect} from 'react'
 import {useLocalStorage} from "./localStorage";
-import {useQuery} from "react-query";
+import {useQuery} from "@tanstack/react-query";
 
 function developmentAPIURL(urlPath: string): string{
 	// For development environments, route API calls to local express server
@@ -76,7 +76,9 @@ function useAPIRequest({url, method = "GET", useAuthentication = false, bodyPara
 
 	const makeRequest = async function (){
 		const fetchedResponse = await fetch(baseUrl, initOptions)
-		return fetchedResponse
+		const responseCode = fetchedResponse.status
+		const responseData = await fetchedResponse.json()
+		return [responseCode, responseData]
 	}
 
 	const requestResponse = useQuery([url, bodyParams, queryParams], makeRequest)
