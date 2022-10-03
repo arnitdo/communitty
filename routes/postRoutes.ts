@@ -241,7 +241,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 						}
 					)
 
-					const contentResponseJSON = await contentResponse.json()
+					const contentResponseJSON: any = await contentResponse.json()
 					const {rating_index, error_code} = contentResponseJSON
 					if (error_code > 0){
 						res.status(400).json({
@@ -431,7 +431,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 						}
 					)
 
-					const contentResponseJSON = await contentResponse.json()
+					const contentResponseJSON: any = await contentResponse.json()
 					const {rating_index, error_code} = contentResponseJSON
 					if (error_code > 0){
 						res.status(400).json({
