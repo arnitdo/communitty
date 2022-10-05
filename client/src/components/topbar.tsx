@@ -1,61 +1,127 @@
 import * as React from 'react'
-import {useState} from 'react'
-import {InfoIcon, SearchIcon} from '@chakra-ui/icons'
-import {Avatar, Button, Flex, IconButton, Input, Spacer, Text} from "@chakra-ui/react";
-import {useAPIRequest} from "../utils/apiHandler";
+import {useEffect, useMemo, useState} from 'react'
+import {FaSearch, FaSpinner, FaHome} from "react-icons/fa";
+import {Avatar, Button, Flex, IconButton, Image, Input, Spacer, Text, useColorMode} from "@chakra-ui/react";
 import {useNavigate} from "react-router-dom";
 
-import '../styles/topbar.css'
+import {useAPIRequest} from "../utils/apiHandler";
+import {ThemeSwitch} from "./themeSwitch";
 
+/**
+ *
+ * @summary Re-usable top bar component, available across pages
+ */
 function TopBar(): JSX.Element {
 
-	const {isLoading, isError, isSuccess} = useAPIRequest({
-		url: "/users/arnitdo/profile",
-		useAuthentication: false
+	const redirect = useNavigate()
+
+	const {isLoading, isError, isSuccess, data} = useAPIRequest({
+		url: "/users/me",
+		useAuthentication: true
 	})
 
-	const navigate = useNavigate()
+	const [searchTerm, setSearchTerm] = useState<string | null>(null)
+
+	const [profileData, setProfileData] = useState<any>(null)
+
+	useEffect(() => {
+		if (isSuccess){
+			const [responseCode, responseData]: any = data
+			if (responseCode === 200){
+				const {actionResult} = responseData
+				if (actionResult === "SUCCESS"){
+					setProfileData(responseData.profileData)
+				} else {
+					setProfileData(null)
+				}
+			}
+		}
+	}, [isSuccess, data])
 
 	return (
-		<div className={"top-bar"}>
-			<Flex>
-				<InfoIcon/>
-				<Spacer/>
-				<Input
-					className={"search-bar"}
-					placeholder={"Search posts"}
-					minWidth={"30vw"}
-					maxWidth={"50vw"}>
-				</Input>
-				<IconButton
-					className={"search-button"}
-					aria-label={"search posts"}
-					icon={<SearchIcon></SearchIcon>}>
-					Search Posts
-				</IconButton>
-				<Spacer/>
-				{isLoading ? (
-					<Button>
-						<Avatar src={""}></Avatar>
-						<Text style={
-							{
-								whiteSpace: "nowrap"
+		<div>
+			<Flex gap={"0.5vw"} alignItems={"center"}>
+				<Spacer maxWidth={"0.5vw"} />
+				<Image
+					src={`/home-icon.svg`}
+					alt={"Communitty"}
+					maxHeight={"2em"}
+					onClick={() => {
+						redirect("/")
+					}}
+				/>
+				<Spacer />
+				<Flex
+					minWidth={"33vw"}
+					maxWidth={"50wv"}
+				>
+					<Input
+						placeholder={"Search posts"}
+						borderBottomRightRadius={0}
+						borderTopRightRadius={0}
+						onChange={(e) => {
+							e.preventDefault()
+							setSearchTerm(e.target.value)
+						}}
+					>
+					</Input>
+					<IconButton
+						aria-label={"search posts"}
+						icon={<FaSearch/>}
+						borderBottomLeftRadius={0}
+						borderTopLeftRadius={0}
+						onClick={() => {
+							if (searchTerm !== null && searchTerm.trim() !== ""){
+								redirect(`/posts/search?searchQuery=${searchTerm}`)
 							}
-						}>{""}</Text>
-					</Button>
-				) : (
-					<>
-						<Button variant={"outline"} onClick={() => {
-							navigate("/login")
-						}}>
-							Log In
-						</Button>
-						<Button variant={"solid"} onClick={() => {
-							navigate("/signup")
-						}}>
-							Sign Up
-						</Button>
-					</>
+						}}
+					>
+						Search Posts
+					</IconButton>
+				</Flex>
+				<Spacer />
+				<ThemeSwitch />
+				{isLoading ? (
+					<IconButton
+						aria-label={"Loading"}
+						icon={<FaSpinner />}
+					/>
+				) :	(
+					profileData === null ? (
+						<>
+							<Button
+								onClick={() => {
+									redirect("/login")
+								}}
+								variant={"outline"}
+							>
+								Log In
+							</Button>
+							<Button
+								onClick={() => {
+									redirect("/signup")
+								}}
+								variant={"solid"}
+							>
+								Sign Up
+							</Button>
+						</>
+					) : (
+						<>
+							<Button onClick={() => {
+								redirect(`/users/${profileData.username}/`)
+							}}>
+								<Avatar
+									src={profileData.avatarUrl}
+									size={"sm"}
+									aria-label={`${profileData.username}'s avatar`}
+								/>
+								<Spacer width={"0.5vw"} />
+								<Text wordBreak={"keep-all"}>{profileData.profileName}</Text>
+							</Button>
+							<Spacer maxWidth={"0.5vw"}/>
+						</>
+					)
 				)}
 			</Flex>
 		</div>

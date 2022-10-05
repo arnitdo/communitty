@@ -1,4 +1,3 @@
-import {useState, useEffect} from 'react'
 import {useLocalStorage} from "./localStorage";
 import {useQuery} from "@tanstack/react-query";
 
@@ -48,7 +47,44 @@ type APIRequestParams = {
 	queryParams?: any
 }
 
-function useAPIRequest({url, method = "GET", useAuthentication = false, bodyParams = null, queryParams = null}: APIRequestParams){
+async function refreshTokens(): Promise<[string | null, string | null]> {
+	const currentRefreshToken = localStorage.getItem("communittyRefreshToken") || "null"
+
+	if (currentRefreshToken === "null"){
+		// Cannot refresh invalid tokens
+		return [null, null]
+	}
+
+	const tokenBody = {
+		"refreshToken": currentRefreshToken
+	}
+
+	const refreshResponse = await fetch(
+		API_URL("/auth/token_refresh"),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json; charset=utf-8"
+			},
+			body: JSON.stringify(tokenBody)
+		}
+	)
+
+	if (refreshResponse.ok){
+		const responseBody = await refreshResponse.json()
+		const {actionResult} = responseBody
+		if (actionResult === "SUCCESS"){
+			const {authToken, refreshToken} = responseBody
+			return [authToken, refreshToken]
+		}
+		if (actionResult === "REFRESH_EXPIRED"){
+			return [null, null]
+		}
+	}
+	return [null, null]
+}
+
+function useAPIRequest({url, method = "GET", useAuthentication = false, bodyParams = null, queryParams = null}: APIRequestParams): ReturnType<typeof useQuery> {
 	const [authToken, setAuthToken] = useLocalStorage("communittyAuthToken")
 	const [refreshToken, setRefreshToken] = useLocalStorage("communittyRefreshToken")
 
@@ -64,17 +100,18 @@ function useAPIRequest({url, method = "GET", useAuthentication = false, bodyPara
 		method: method as string,
 	}
 
-	if (useAuthentication == true){
+	if (useAuthentication === true) {
 		initOptions.headers = {
-			"Authorization": `Bearer ${authToken}`
+			"Authorization": `Bearer ${authToken}`,
+			"Content-Type": "application/json; charset=utf-8"
 		}
 	}
 
-	if (method != "GET" && bodyParams != null){
+	if (method !== "GET" && bodyParams !== null){
 		initOptions.body = JSON.stringify(bodyParams)
 	}
 
-	const makeRequest = async function (){
+	const makeRequest = async function(){
 		const fetchedResponse = await fetch(baseUrl, initOptions)
 		const responseCode = fetchedResponse.status
 		const responseData = await fetchedResponse.json()
@@ -82,7 +119,24 @@ function useAPIRequest({url, method = "GET", useAuthentication = false, bodyPara
 	}
 
 	const requestResponse = useQuery([url, bodyParams, queryParams], makeRequest)
-	console.log(requestResponse)
+
+	const {isSuccess, isError, data, error} = requestResponse
+
+	if (isError){
+		console.error(error)
+	}
+
+	if (isSuccess){
+		const [responseCode, responseData] = data
+		if (responseData.actionResult === "ERR_AUTH_EXPIRED"){
+			refreshTokens().then(([authT, refreshT]) => {
+				if (authT !== null && refreshT !== null) {
+					setAuthToken(authT)
+					setRefreshToken(refreshT)
+				}
+			})
+		}
+	}
 
 	return requestResponse
 }

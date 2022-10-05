@@ -1,8 +1,9 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom/client"
 import {App} from "./App"
-import {ChakraProvider} from "@chakra-ui/react";
+import {ChakraProvider, ColorModeScript} from "@chakra-ui/react";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import {globalTheme} from "./utils/themeConfig";
 
 const queryClient = new QueryClient()
 
@@ -16,6 +17,7 @@ root.render(
 	<React.StrictMode>
 		<QueryClientProvider client={queryClient}>
 			<ChakraProvider>
+				<ColorModeScript initialColorMode={globalTheme.config.initialColorMode} />
 				<App />
 			</ChakraProvider>
 		</QueryClientProvider>

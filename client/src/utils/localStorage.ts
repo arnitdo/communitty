@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 function getStorageValue(key: string, defaultValue : any = null) {
 	// getting stored value
 	const storageValue = localStorage.getItem(key);
-	if (storageValue == null){
+	if (storageValue == null || storageValue == "null"){
 		return defaultValue
 	}
 	return storageValue;
@@ -15,8 +15,7 @@ function useLocalStorage(key: string, defaultValue : any = null){
 	});
 
 	useEffect(() => {
-		// storing input name
-		localStorage.setItem(key, JSON.stringify(value));
+		localStorage.setItem(key, value);
 	}, [key, value]);
 
 	return [value, setValue];
