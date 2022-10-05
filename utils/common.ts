@@ -31,8 +31,8 @@ function validateAuthToken(authToken: string): [boolean, JwtPayload | null] {
 	}
 }
 
-function validateRefreshToken(refreshToken: string, userName: string): [boolean, JwtPayload | null] {
-	let refreshTokenData: JwtPayload = {}
+function validateRefreshToken(refreshToken: string): [boolean, JwtPayload | null] {
+	let refreshTokenData: JwtPayload | null = null
 	try {
 		refreshTokenData = verify(
 			refreshToken,
@@ -42,7 +42,7 @@ function validateRefreshToken(refreshToken: string, userName: string): [boolean,
 				maxAge: "1d"
 			}
 		)
-		if (refreshTokenData.userName === userName && refreshTokenData.tokenType === "REFRESH") {
+		if (refreshTokenData.tokenType === "REFRESH") {
 			return [true, refreshTokenData]
 		} else {
 			return [false, refreshTokenData]
