@@ -68,6 +68,7 @@ async function getUserProfile(req: Request, res: Response): Promise<void> {
 			...normalizedUserProfileData,
 			"followingUser": followingUser,
 			"followedByUser": followedByUser,
+			"userProfile": `/api/users/${userName}/profile`,
 			"userPosts": `/api/users/${userName}/posts`,
 			"userComments": `/api/users/${userName}/comments`,
 			"userFollowers": `/api/users/${userName}/followers`,

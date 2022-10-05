@@ -30,7 +30,7 @@ const apiRouter = Router()
 // Rate limiter for non-GET requests
 const actionRateLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000, // 5 Minutes
-	max: 10, // 10 non-GET requests per IP / 5 minutes
+	max: 25, // 25 non-GET requests per IP / 5 minutes
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: {

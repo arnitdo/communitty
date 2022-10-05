@@ -45,7 +45,7 @@ function validateFullName(fullName: string): boolean {
 	return false
 }
 
-function generateAuthAndRefreshTokens(userName: string): [object, object] {
+function generateAuthAndRefreshTokens(userName: string): [string, string] {
 	const signedAuthToken = sign(
 		{
 			userName: userName,
@@ -282,28 +282,20 @@ async function userLogin(req: Request, res: Response): Promise<void> {
 
 async function userTokenRefresh(req: Request, res: Response): Promise<void> {
 	try {
-		const {authToken, refreshToken} = req.body
-		const [authTokenValidity, authTokenData] = validateAuthToken(authToken)
+		const {refreshToken} = req.body
 
-		if (authTokenData == null) {
-			res.status(400).json({
-				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": ["authToken"],
-			})
-			return
-		}
-
-		// @ts-ignore
-		const tokenUserName = authTokenData.userName
-
-		const [refreshTokenValidity, refreshTokenData] = validateRefreshToken(refreshToken, tokenUserName)
+		const [refreshTokenValidity, refreshTokenData] = validateRefreshToken(refreshToken)
 
 		if (refreshTokenData == null) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["refreshToken"]
 			})
+			return
 		}
+
+		// @ts-ignore
+		const tokenUserName = refreshTokenData.userName
 
 		if (refreshTokenValidity == true) {
 			const [newAuthToken, newRefreshToken] = generateAuthAndRefreshTokens(tokenUserName)
@@ -462,7 +454,7 @@ authRouter.post(
 
 authRouter.post(
 	"/token_refresh",
-	middleware.needsBodyParams("authToken", "refreshToken"),
+	middleware.needsBodyParams("refreshToken"),
 	userTokenRefresh
 )
 
