@@ -17,7 +17,7 @@ async function needsToken(req: Request, res: Response, next: NextFunction): Prom
 
 	if (!authHeader) {
 		res.status(401).json({
-			"actionResult": "ERR_NO_TOKEN"
+			"actionResult": "ERR_AUTH_REQUIRED"
 		})
 	} else {
 		const authToken = stripAuthHeader(authHeader)
