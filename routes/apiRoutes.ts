@@ -17,12 +17,16 @@ function sendSwaggerDocument(req: Request, res: Response){
 
 function apiHeartbeat(req: Request, res: Response){
 	// Returns 200 OK for server heartbeat
-	res.sendStatus(200)
+	res.status(200).json({
+		"actionResult": "SUCCESS"
+	})
 }
 
 function apiNotFound(req: Request, res: Response){
 	// That API route does not exist
-	res.sendStatus(404)
+	res.status(404).json({
+		"actionResult": "ERR_NOT_FOUND"
+	})
 }
 
 const apiRouter = Router()
