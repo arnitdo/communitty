@@ -1,21 +1,18 @@
 import * as React from 'react'
-import {useEffect, useMemo, useState} from 'react'
+import {useEffect, useState} from 'react'
 import {FaSearch, FaSpinner, FaHome} from "react-icons/fa";
-import {Avatar, Button, Flex, IconButton, Image, Input, Spacer, Text, useColorMode} from "@chakra-ui/react";
+import {Avatar, Box, Button, Flex, IconButton, Image, Input, Spacer, Text} from "@chakra-ui/react";
 import {useNavigate} from "react-router-dom";
 
 import {useAPIRequest} from "../utils/apiHandler";
 import {ThemeSwitch} from "./themeSwitch";
 
-/**
- *
- * @summary Re-usable top bar component, available across pages
- */
+
 function TopBar(): JSX.Element {
 
 	const redirect = useNavigate()
 
-	const {isLoading, isError, isSuccess, data} = useAPIRequest({
+	const [isLoading, isSuccess, isError, code, data, error] = useAPIRequest({
 		url: "/users/me",
 		useAuthentication: true
 	})
@@ -26,25 +23,32 @@ function TopBar(): JSX.Element {
 
 	useEffect(() => {
 		if (isSuccess){
-			const [responseCode, responseData]: any = data
-			if (responseCode === 200){
-				const {actionResult} = responseData
+			if (code === 200){
+				const {actionResult, profileData} = data
 				if (actionResult === "SUCCESS"){
-					setProfileData(responseData.profileData)
+					setProfileData(profileData)
 				} else {
 					setProfileData(null)
 				}
 			}
 		}
-	}, [isSuccess, data])
+	}, [isLoading, isSuccess])
 
 	return (
-		<div>
-			<Flex gap={"0.5vw"} alignItems={"center"}>
+		<Box
+			boxShadow={"md"}
+			padding={"10px"}
+			opacity={"100%"}
+		>
+			<Flex
+				gap={"0.5vw"}
+				alignItems={"center"}
+			>
 				<Spacer maxWidth={"0.5vw"} />
 				<Image
 					src={`/home-icon.svg`}
 					alt={"Communitty"}
+					aria-label={"Click to return to the homepage"}
 					maxHeight={"2em"}
 					onClick={() => {
 						redirect("/")
@@ -105,6 +109,7 @@ function TopBar(): JSX.Element {
 							>
 								Sign Up
 							</Button>
+							<Spacer maxWidth={"0.5vw"}/>
 						</>
 					) : (
 						<>
@@ -124,7 +129,7 @@ function TopBar(): JSX.Element {
 					)
 				)}
 			</Flex>
-		</div>
+		</Box>
 	)
 }
 
