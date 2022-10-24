@@ -2,6 +2,7 @@ import {Request, Response, Router} from 'express';
 import {db} from "../utils/db";
 import * as middleware from '../utils/middleware'
 import {getAuthenticatedUser, hasAuthToken, normalizeObjectKeys} from "../utils/common";
+import {QueryResult} from "pg";
 
 async function getFeed(req: Request, res: Response){
 	try {
@@ -17,7 +18,7 @@ async function getFeed(req: Request, res: Response){
 		const feedPageOffset = ((parsedFeedPage - 1) * 10)
 
 		let currentUser: string | null = null
-
+		let currentUserDiscarded: boolean = false
 		let feedFallback: boolean = false
 
 		if (hasAuthToken(req)){
@@ -34,6 +35,7 @@ async function getFeed(req: Request, res: Response){
 			if (currentUserFollowingCount == 0){
 				// If the user isn't following anyone, act like they are a visitor
 				currentUser = null
+				currentUserDiscarded = true
 			}
 		}
 
@@ -41,6 +43,53 @@ async function getFeed(req: Request, res: Response){
 			const {rows} = await db.query(
 				"SELECT * FROM posts ORDER BY post_modified_time	DESC OFFSET $1 LIMIT 10;",
 				[feedPageOffset]
+			)
+
+			let randomRecommendedUsers: QueryResult<any>
+
+			let currentDiscardedUser: string | null = null
+
+			if (currentUserDiscarded === true){
+				currentDiscardedUser = getAuthenticatedUser(req)
+				randomRecommendedUsers = await db.query(
+					"SELECT DISTINCT following_username FROM profile_follows WHERE following_username != $1" +
+					"ORDER BY following_username DESC LIMIT 5",
+					[currentDiscardedUser]
+				)
+			} else {
+				randomRecommendedUsers = await db.query(
+					"SELECT DISTINCT following_username FROM profile_follows ORDER BY following_username DESC LIMIT 5"
+				)
+			}
+
+			if (randomRecommendedUsers.rows.length === 0){
+				// On a fresh start, there won't be any users.
+				// Start recommending all users
+				randomRecommendedUsers = await db.query(
+					"SELECT username AS following_username FROM profiles WHERE username != $1 ORDER BY follower_count DESC LIMIT 5",
+					[currentDiscardedUser]
+				)
+			}
+
+			const randomUserRows = randomRecommendedUsers.rows
+
+			const recommendedUserNames = randomUserRows.map((row) => {
+				return row.following_username
+			})
+
+			const recommendedUserData = await Promise.all(
+				recommendedUserNames.map(async (userName) => {
+					const {rows} = await db.query(
+						"SELECT * FROM profiles WHERE username = $1",
+						[userName]
+					)
+
+					const userData = rows[0]
+
+					const normalisedUserData = normalizeObjectKeys(userData)
+
+					return normalisedUserData
+				})
 			)
 
 			const normalizedRows = rows.map((row) => {
@@ -53,7 +102,8 @@ async function getFeed(req: Request, res: Response){
 			res.status(200).json({
 				"actionResult": "SUCCESS",
 				"feedFallback": feedFallback,
-				"feedData": normalizedRows
+				"feedData": normalizedRows,
+				"recommendedUsers": recommendedUserData
 			})
 		} else {
 			const {rows} = await db.query(
@@ -62,6 +112,36 @@ async function getFeed(req: Request, res: Response){
 					ORDER BY posts.post_modified_time DESC OFFSET $2 LIMIT 10;
                `,
 				[currentUser, feedPageOffset]
+			)
+
+			const recommendedUsers = await db.query(
+				`SELECT DISTINCT other_users_follow.following_username AS recommended_users FROM profile_follows other_users_follow JOIN profile_follows this_user_follow
+					ON other_users_follow.follower_username = this_user_follow.following_username 
+					   AND this_user_follow.follower_username = $1
+                       AND other_users_follow.following_username != $1                                          
+					ORDER BY this_user_follow.follow_since DESC LIMIT 5;
+					`
+			)
+
+			const recommendedUserRows: any = recommendedUsers.rows
+
+			const recommendedUsernames: string[] = recommendedUserRows.map((row: any): string => {
+				return row.following_username as string
+			})
+
+			const recommendedUserData = await Promise.all(
+				recommendedUsernames.map(async (userName) => {
+					const {rows} = await db.query(
+						"SELECT * FROM profiles WHERE username = $1",
+						[userName]
+					)
+
+					const userData = rows[0]
+
+					const normalisedUserData = normalizeObjectKeys(userData)
+
+					return normalisedUserData
+				})
 			)
 
 			if (rows.length != 0){
@@ -74,7 +154,8 @@ async function getFeed(req: Request, res: Response){
 				res.status(200).json({
 					"actionResult": "SUCCESS",
 					"feedFallback": feedFallback,
-					"feedData": normalizedRows
+					"feedData": normalizedRows,
+					"recommendedUsers": recommendedUserData
 				})
 			} else {
 				// If we are getting no rows,
@@ -112,7 +193,8 @@ async function getFeed(req: Request, res: Response){
 				res.status(200).json({
 					"actionResult": "SUCCESS",
 					"feedFallback": feedFallback,
-					"feedData": normalizedRows
+					"feedData": normalizedRows,
+					"recommendedUsers": recommendedUsernames
 				})
 			}
 		}
