@@ -29,8 +29,8 @@ async function sendActivationMail(emailRecipient: string, userName: string, acti
 			`\n\n${activationURL}`
 	}
 	try {
-		// @ts-ignore
 		// And sendoff!
+		// @ts-ignore
 		const emailResponse = await emailService.send(activationMessage)
 	} catch (err) {
 		// Log the error, if any
@@ -46,7 +46,7 @@ async function sendPasswordResetMail(emailRecipient: string, userName: string, r
 	// Concatenate to form activation URL
 	const resetURL: string = baseURLString + "/reset_password?userName=" + urlEncodedUsername + "&resetToken=" + urlEncodedToken
 	// Craft activation email
-	const resetMessage: object = {
+	const resetMessage = {
 		to: emailRecipient,
 		from: "join.communitty@gmail.com",
 		subject: "Communitty Password Reset",
@@ -57,8 +57,8 @@ async function sendPasswordResetMail(emailRecipient: string, userName: string, r
 			`\n\n${resetURL}`
 	}
 	try {
-		// @ts-ignore
 		// And sendoff!
+		// @ts-ignore
 		const emailResponse = await emailService.send(resetMessage)
 	} catch (err) {
 		// Log the error, if any
