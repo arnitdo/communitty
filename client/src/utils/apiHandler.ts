@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {DependencyList, useCallback, useEffect, useState} from "react";
 
 export type APIResponse = {
 	isSuccess: boolean,
@@ -220,7 +220,7 @@ async function makeAPIRequest(requestProperties: APIRequestParams): Promise<APIR
 	}
 }
 
-function useAPIRequest(requestProperties: APIRequestParams): APIResponseState {
+function useAPIRequest(requestProperties: APIRequestParams, deps: DependencyList = []): APIResponseState {
 	const [isLoading, setIsLoading] = useState<boolean>(true)
 	const [isSuccess, setIsSuccess] = useState<boolean>(false)
 	const [isError, setIsError] = useState<boolean>(false)
@@ -243,7 +243,7 @@ function useAPIRequest(requestProperties: APIRequestParams): APIResponseState {
 
 	useEffect(() => {
 		makeRequest()
-	}, [])
+	}, deps)
 
 	return [isLoading, isSuccess, isError, code, data, error]
 }
@@ -251,5 +251,7 @@ function useAPIRequest(requestProperties: APIRequestParams): APIResponseState {
 export {
 	API_URL,
 	makeAPIRequest,
-	useAPIRequest
+	useAPIRequest,
+	setLocalStorage,
+	resetLocalStorage
 };
