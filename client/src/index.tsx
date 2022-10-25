@@ -15,7 +15,7 @@ const root = ReactDOM.createRoot(container)
 root.render(
 	<React.StrictMode>
 		<HelmetProvider>
-			<ChakraProvider>
+			<ChakraProvider theme={globalTheme}>
 				<ColorModeScript initialColorMode={globalTheme.config.initialColorMode} />
 				<App />
 			</ChakraProvider>
