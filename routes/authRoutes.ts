@@ -248,7 +248,7 @@ async function userLogin(req: Request, res: Response): Promise<void> {
 		if (rows.length == 0) {
 			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
-				"invalidProperties": ["userName", "userPass"]
+				"invalidProperties": ["userName"]
 			})
 			return
 		}
@@ -267,7 +267,7 @@ async function userLogin(req: Request, res: Response): Promise<void> {
 				"refreshToken": signedRefreshToken
 			})
 		} else {
-			res.status(200).json({
+			res.status(400).json({
 				"actionResult": "ERR_INVALID_PROPERTIES",
 				"invalidProperties": ["userPass"],
 			})
