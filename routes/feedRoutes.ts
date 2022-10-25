@@ -92,12 +92,35 @@ async function getFeed(req: Request, res: Response){
 				})
 			)
 
-			const normalizedRows = rows.map((row) => {
-				return normalizeObjectKeys(
-					row,
-					['post_tags', 'post_modified_time']
-				)
-			})
+			const normalizedRows = await Promise.all(
+				rows.map(async (row) => {
+					const postId = row.post_id
+
+					const userLikeQuery = await db.query(
+						"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2",
+						[postId, currentDiscardedUser]
+					)
+
+					let finalPostData: any
+
+					if (userLikeQuery.rows.length === 0){
+						finalPostData = {
+							...row,
+							"user_like_status": false
+						}
+					} else {
+						finalPostData = {
+							...row,
+							"user_like_status": true
+						}
+					}
+
+					return normalizeObjectKeys(
+						finalPostData,
+						['post_tags', 'post_modified_time']
+					)
+				})
+			)
 
 			res.status(200).json({
 				"actionResult": "SUCCESS",
