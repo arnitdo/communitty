@@ -15,26 +15,9 @@ import {Link} from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import ChakraUIRenderer from "chakra-ui-markdown-renderer";
 import {useCallback, useState} from "react";
-import {makeAPIRequest, useAPIRequest} from "../utils/apiHandler";
 
-export interface PostProps {
-	postId: number,
-	postAuthor: string,
-	postType: string,
-	postTitle: string,
-	postBody: string,
-	postTags: string[],
-	postModifiedTime: string,
-	postLikeCount: number,
-	postCommentCount: number,
-	postEdited: boolean,
-	userLikeStatus: boolean
-}
-
-interface PostContentProps {
-	postTitle: string,
-	postBody: string
-}
+import {makeAPIRequest} from "../utils/apiHandler";
+import {PostContentProps, PostProps} from '../utils/typeDefs'
 
 function TextPostContent({postTitle, postBody}: PostContentProps): JSX.Element {
 	return (

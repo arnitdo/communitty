@@ -9,3 +9,22 @@ export interface TopBarProps extends AuthComponent {
 export interface LoginPageProps extends AuthComponent {
 
 }
+
+export interface PostProps {
+	postId: number,
+	postAuthor: string,
+	postType: string,
+	postTitle: string,
+	postBody: string,
+	postTags: string[],
+	postModifiedTime: string,
+	postLikeCount: number,
+	postCommentCount: number,
+	postEdited: boolean,
+	userLikeStatus: boolean
+}
+
+export interface PostContentProps {
+	postTitle: string,
+	postBody: string
+}
