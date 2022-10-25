@@ -4,18 +4,19 @@ import {FaSearch, FaSpinner, FaHome} from "react-icons/fa";
 import {Avatar, Box, Button, Flex, IconButton, Image, Input, Spacer, Text} from "@chakra-ui/react";
 import {useNavigate} from "react-router-dom";
 
-import {useAPIRequest} from "../utils/apiHandler";
+import {resetLocalStorage, useAPIRequest} from "../utils/apiHandler";
 import {ThemeSwitch} from "./themeSwitch";
+import {HomeIcon} from "./homeIcon";
+import {TopBarProps} from "../utils/typeDefs";
 
-
-function TopBar(): JSX.Element {
+function TopBar({authState, refreshAuth}: TopBarProps): JSX.Element {
 
 	const redirect = useNavigate()
 
 	const [isLoading, isSuccess, isError, code, data, error] = useAPIRequest({
 		url: "/users/me",
 		useAuthentication: true
-	})
+	}, [authState])
 
 	const [searchTerm, setSearchTerm] = useState<string | null>(null)
 
@@ -25,11 +26,11 @@ function TopBar(): JSX.Element {
 		if (isSuccess){
 			if (code === 200){
 				const {actionResult, profileData} = data
-				if (actionResult === "SUCCESS"){
+				if (actionResult === "SUCCESS") {
 					setProfileData(profileData)
-				} else {
-					setProfileData(null)
 				}
+			} else {
+				setProfileData(null)
 			}
 		}
 	}, [isLoading, isSuccess])
@@ -45,15 +46,7 @@ function TopBar(): JSX.Element {
 				alignItems={"center"}
 			>
 				<Spacer maxWidth={"0.5vw"} />
-				<Image
-					src={`/home-icon.svg`}
-					alt={"Communitty"}
-					aria-label={"Click to return to the homepage"}
-					maxHeight={"2em"}
-					onClick={() => {
-						redirect("/")
-					}}
-				/>
+				<HomeIcon />
 				<Spacer />
 				<Flex
 					minWidth={"33vw"}
@@ -105,7 +98,7 @@ function TopBar(): JSX.Element {
 								onClick={() => {
 									redirect("/signup")
 								}}
-								variant={"solid"}
+								variant={"brandPrimary"}
 							>
 								Sign Up
 							</Button>
@@ -114,7 +107,9 @@ function TopBar(): JSX.Element {
 					) : (
 						<>
 							<Button onClick={() => {
-								redirect(`/users/${profileData.username}/`)
+								// redirect(`/users/${profileData.username}/`)
+								resetLocalStorage()
+								refreshAuth()
 							}}>
 								<Avatar
 									src={profileData.avatarUrl}
