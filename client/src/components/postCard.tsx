@@ -1,6 +1,16 @@
 import * as React from 'react';
-import {Box, Center, Divider, Image, Text, Link as ChakraLink, Flex, IconButton, useToast} from "@chakra-ui/react";
-import {FaHeart, FaHeartBroken} from "react-icons/fa";
+import {
+	Box,
+	Center,
+	Divider,
+	Image,
+	Text,
+	Link as ChakraLink,
+	Flex,
+	Button,
+	useToast
+} from "@chakra-ui/react";
+import {AiFillHeart, AiOutlineHeart} from "react-icons/ai";
 import {Link} from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import ChakraUIRenderer from "chakra-ui-markdown-renderer";
@@ -66,7 +76,11 @@ function LinkPostContent({postTitle, postBody}: PostContentProps): JSX.Element {
 			<ChakraLink
 				href={postBody}
 			>
-				{postBody}
+				<Text
+					color={"blue.400"}
+				>
+					{postBody}
+				</Text>
 			</ChakraLink>
 		</Box>
 	)
@@ -89,6 +103,8 @@ function PostCard(props: PostProps): JSX.Element {
 		postLikeCount, userLikeStatus
 	} = props
 
+	const [likeCount, setLikeCount] = useState<number>(postLikeCount)
+
 	const [likeStatus, setLikeStatus] = useState<boolean>(userLikeStatus)
 
 	const showToast = useToast()
@@ -106,6 +122,11 @@ function PostCard(props: PostProps): JSX.Element {
 		})
 
 		if (isSuccess === true && code === 200){
+			setLikeCount(
+				likeStatus ?
+					likeCount - 1 :
+					likeCount + 1
+			)
 			setLikeStatus(!likeStatus)
 		} else {
 			if (code === 401){
@@ -118,6 +139,15 @@ function PostCard(props: PostProps): JSX.Element {
 						description: "You need to log in to perform this action"
 					})
 				}
+			}
+
+			if (code == 429){
+				// Hitting a rate-limit
+				showToast({
+					status: "warning",
+					title: "Rate Limited",
+					description: "You are performing actions too fast! Take a break!"
+				})
 			}
 		}
 	}, [likeStatus])
@@ -132,7 +162,7 @@ function PostCard(props: PostProps): JSX.Element {
 			maxHeight={"50vh"}
 			boxShadow={"md"}
 			border={"1px"}
-			borderColor={"whiteAlpha.400"}
+			borderColor={"grey.400"}
 			padding={"10px"}
 		>
 			<Text
@@ -143,7 +173,7 @@ function PostCard(props: PostProps): JSX.Element {
 					{postTitle}
 				</Text>
 				<Text
-					float={"inline-end"}
+					float={"right"}
 					as={'span'}
 					fontSize={"sm"}
 				>
@@ -158,7 +188,9 @@ function PostCard(props: PostProps): JSX.Element {
 					</Link>
 				</Text>
 			</Text>
-			<Divider />
+			<Divider
+				borderColor={"grey.400"}
+			/>
 			<Box
 				padding={"10px"}
 				minWidth={"inherit"}
@@ -172,17 +204,29 @@ function PostCard(props: PostProps): JSX.Element {
 				flexDirection={"row"}
 			>
 				{likeStatus ? (
-					<IconButton
-						aria-label={"Dislike"}
-						icon={<FaHeartBroken />}
+					<Button
 						onClick={toggleLike}
-					/>
+					>
+						<AiFillHeart
+							color={"hotpink"}
+						/>
+						&nbsp;
+						<Text>
+							{likeCount}
+						</Text>
+					</Button>
 				) : (
-					<IconButton
-						aria-label={"Like"}
-						icon={<FaHeart />}
+					<Button
 						onClick={toggleLike}
-					/>
+					>
+						<AiOutlineHeart
+							color={"hotpink"}
+						/>
+						&nbsp;
+						<Text>
+							{likeCount}
+						</Text>
+					</Button>
 				)}
 			</Flex>
 		</Box>
