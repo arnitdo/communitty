@@ -14,10 +14,10 @@ import {AiFillHeart, AiOutlineHeart} from "react-icons/ai";
 import {Link} from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import ChakraUIRenderer from "chakra-ui-markdown-renderer";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 
 import {makeAPIRequest} from "../utils/apiHandler";
-import {PostContentProps, PostProps} from '../utils/typeDefs'
+import {PostContentProps, PostProps, ContentTypeLookupType} from '../utils/typeDefs'
 
 function TextPostContent({postTitle, postBody}: PostContentProps): JSX.Element {
 	return (
@@ -69,10 +69,6 @@ function LinkPostContent({postTitle, postBody}: PostContentProps): JSX.Element {
 	)
 }
 
-type ContentTypeLookupType = {
-	[contentType: string]: ({postTitle, postBody}: PostContentProps) => JSX.Element
-}
-
 const contentTypeLookup: ContentTypeLookupType = {
 	"TEXT_POST": TextPostContent,
 	"IMAGE_POST": ImagePostContent,
@@ -91,6 +87,10 @@ function PostCard(props: PostProps): JSX.Element {
 	const [likeStatus, setLikeStatus] = useState<boolean>(userLikeStatus)
 
 	const showToast = useToast()
+
+	useEffect(() => {
+		setLikeStatus(userLikeStatus)
+	}, [userLikeStatus])
 
 	const toggleLike = useCallback(async () => {
 		let requestMethod: "POST" | "DELETE" = "POST"

@@ -1,10 +1,12 @@
 import * as React from 'react'
-import {Center, Flex, useToast} from '@chakra-ui/react'
-import {PostCard, PostProps} from "../components/postCard";
-import {useEffect, useState} from "react";
+import {Button, Center, Flex, useToast} from '@chakra-ui/react'
+import {useCallback, useEffect, useState} from "react";
+
+import {HomeFeedProps, PostProps} from "../utils/typeDefs"
+import {PostCard} from "../components/postCard"
 import {useAPIRequest} from "../utils/apiHandler";
 
-function HomeFeed(): JSX.Element {
+function HomeFeed({authState, refreshAuth}: HomeFeedProps): JSX.Element {
 	const [currentFeedPage, setCurrentFeedPage] = useState<number>(1)
 	const [currentFallbackPage, setCurrentFallbackPage] = useState<number>(1)
 	const [fallbackFlag, setFallbackFlag] = useState<boolean>(false)
@@ -21,17 +23,41 @@ function HomeFeed(): JSX.Element {
 			"feedPage": currentFeedPage,
 			"fallbackPage": currentFallbackPage
 		}
-	})
+	}, [authState, currentFeedPage, currentFallbackPage])
+
+	useEffect(() => {
+		setPostData([])
+	}, [authState])
 
 	useEffect(() => {
 		if (isSuccess){
 			if (code === 200 && data.actionResult == "SUCCESS"){
 				const {feedData, feedFallback} = data
 				const newPostData = feedData as PostProps[]
-				setPostData([
-					...postData,
+
+
+				const existingPostData = [...postData]
+
+				const newPostIds = newPostData.map((post) => {
+					return post.postId
+				})
+
+				const filteredPostData = existingPostData.filter((existingPost) => {
+					const existingPostId = existingPost.postId
+
+					if (newPostIds.indexOf(existingPostId) !== -1){
+						return false
+					}
+
+					return true
+				})
+
+				const finalPostData = [
+					...filteredPostData,
 					...newPostData
-				])
+				]
+
+				setPostData(finalPostData)
 
 				if (feedFallback === true){
 					if (fallbackFlag === false){
@@ -43,9 +69,18 @@ function HomeFeed(): JSX.Element {
 					}
 					setFallbackFlag(true)
 				}
+
 			}
 		}
-	}, [isLoading])
+	}, [authState, isLoading])
+
+	const loadMorePosts = useCallback((e: any) => {
+		if (fallbackFlag){
+			setCurrentFallbackPage(currentFallbackPage + 1)
+		} else {
+			setCurrentFeedPage(currentFeedPage  + 1)
+		}
+	}, [currentFeedPage, currentFallbackPage])
 
 	return (
 		<Center width={"100vw"}>
@@ -54,20 +89,15 @@ function HomeFeed(): JSX.Element {
 				gap={"1vh"}
 				overflowY={"scroll"}
 			>
-				{
-					isSuccess ? (
-						<>
-						{
-							postData.map((postDataObject) => {
-								const {postId} = postDataObject
-								return (<PostCard key={postId} {...postDataObject}/>)
-							})
-						}
-						</>
-					) : (
-						<></>
-					)
-				}
+				<>
+					{
+						postData.map((postDataObject) => {
+							const {postId} = postDataObject
+						return (<PostCard key={postId} {...postDataObject}/>)
+						})
+					}
+				</>
+				<Button onClick={loadMorePosts}>Load More Posts</Button>
 			</Flex>
 		</Center>
 	)

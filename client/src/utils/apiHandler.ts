@@ -95,9 +95,11 @@ if (process.env.NODE_ENV === "development"){
 async function makeAPIRequest(requestProperties: APIRequestParams): Promise<APIResponse> {
 	const {url, method, useAuthentication, bodyParams, queryParams} = requestProperties
 
+	const baseHostname: string = "https://communitty.onrender.com"
+
 	const resolvedURL = new URL(
 		API_URL(url),
-		"https://communitty.onrender.com"
+		baseHostname
 	)
 
 	if (queryParams != null){
@@ -144,13 +146,6 @@ async function makeAPIRequest(requestProperties: APIRequestParams): Promise<APIR
 		)
 
 		const responseCode = initialResponse.status
-
-		if (responseCode == 404){
-			const responseContentType = initialResponse.headers.get("Content-Type")
-			if (responseContentType !== null && responseContentType.startsWith("text/plain")){
-				throw new Error("404 Not Found")
-			}
-		}
 
 		const responseBody: BasicAPIResponse = await initialResponse.json() as BasicAPIResponse
 
@@ -199,7 +194,16 @@ async function makeAPIRequest(requestProperties: APIRequestParams): Promise<APIR
 				resetLocalStorage()
 
 				return await makeAPIRequest(requestProperties)
-						
+
+			case "ERR_NOT_FOUND":
+				return {
+					isSuccess: false,
+					isError: true,
+					code: 0,
+					data: null,
+					error: new Error("ERR_NOT_FOUND")
+				}
+
 			default:
 				return {
 					isSuccess: true,

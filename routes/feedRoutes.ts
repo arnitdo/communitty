@@ -137,19 +137,33 @@ async function getFeed(req: Request, res: Response){
 				[currentUser, feedPageOffset]
 			)
 
-			const recommendedUsers = await db.query(
-				`SELECT DISTINCT other_users_follow.following_username AS recommended_users FROM profile_follows other_users_follow JOIN profile_follows this_user_follow
+			let recommendedUsers = await db.query(
+				`SELECT DISTINCT other_users_follow.following_username AS recommended_user, this_user_follow.follow_since FROM profile_follows other_users_follow JOIN profile_follows this_user_follow
 					ON other_users_follow.follower_username = this_user_follow.following_username 
 					   AND this_user_follow.follower_username = $1
                        AND other_users_follow.following_username != $1                                          
 					ORDER BY this_user_follow.follow_since DESC LIMIT 5;
-					`
+					`,
+				[currentUser]
 			)
+
+
+			if (recommendedUsers.rows.length === 0){
+				// In case the followers don't follow anyone, fallback to random recommendations
+				recommendedUsers = await db.query(
+					`SELECT DISTINCT other_users.username AS recommended_user, follower_count FROM profiles other_users JOIN profile_follows this_user_follows
+					ON other_users.username != this_user_follows.following_username
+						AND this_user_follows.follower_username = $1
+                        AND other_users.username != $1
+					ORDER BY follower_count DESC LIMIT 5`,
+					[currentUser]
+				)
+			}
 
 			const recommendedUserRows: any = recommendedUsers.rows
 
 			const recommendedUsernames: string[] = recommendedUserRows.map((row: any): string => {
-				return row.following_username as string
+				return row.recommended_user as string
 			})
 
 			const recommendedUserData = await Promise.all(
@@ -168,11 +182,35 @@ async function getFeed(req: Request, res: Response){
 			)
 
 			if (rows.length != 0){
-				const normalizedRows = rows.map((row) => {
-					return normalizeObjectKeys(
-						row, ['post_tags', 'post_modified_time']
-					)
-				})
+				const normalizedRows = await Promise.all(
+					rows.map(async (row) => {
+						const postId = row.post_id
+
+						const userLikeQuery = await db.query(
+							"SELECT 1 FROM post_likes WHERE post_id = $1 AND username = $2",
+							[postId, currentUser]
+						)
+
+						let finalPostData: any
+
+						if (userLikeQuery.rows.length === 0){
+							finalPostData = {
+								...row,
+								"user_like_status": false
+							}
+						} else {
+							finalPostData = {
+								...row,
+								"user_like_status": true
+							}
+						}
+
+						return normalizeObjectKeys(
+							finalPostData,
+							['post_tags', 'post_modified_time']
+						)
+					})
+				)
 
 				res.status(200).json({
 					"actionResult": "SUCCESS",

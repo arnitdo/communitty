@@ -1,11 +1,13 @@
 import * as React from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {useNavigate} from "react-router-dom";
-import {Box, Button, Center, Flex, Image, Input, Spacer, Text, useToast} from "@chakra-ui/react";
-import {useCallback, useEffect, useState} from "react";
-import {BasicAPIResponse, makeAPIRequest, setLocalStorage} from "../utils/apiHandler";
-import {LoginPageProps} from "../utils/typeDefs";
+import {Box, Button, Center, Flex, Image, Input, Spacer, useToast} from "@chakra-ui/react";
+import {Helmet} from 'react-helmet-async'
 
-function LoginPage({refreshAuth}: LoginPageProps){
+import {BasicAPIResponse, makeAPIRequest, setLocalStorage} from "../utils/apiHandler";
+import {TopBarControlComponent, LoginPageProps} from "../utils/typeDefs";
+
+function LoginPage({refreshAuth, setShowTopBar}: LoginPageProps & TopBarControlComponent){
 	const redirect = useNavigate()
 	const showToast = useToast()
 
@@ -13,6 +15,14 @@ function LoginPage({refreshAuth}: LoginPageProps){
 
 	const [inputUsername, setInputUsername] = useState<string>("")
 	const [inputPassword, setInputPassword] = useState<string>("")
+
+	useEffect(() => {
+		setShowTopBar(false)
+
+		return () => {
+			setShowTopBar(true)
+		}
+	}, [])
 
 	const attemptLogin = useCallback(async () => {
 		const {isSuccess, isError, code, data, error} = await makeAPIRequest({
@@ -25,7 +35,7 @@ function LoginPage({refreshAuth}: LoginPageProps){
 			}
 		})
 
-		if (isError){
+		if (isError) {
 			console.error(error)
 			showToast({
 				status: "error",
@@ -35,7 +45,7 @@ function LoginPage({refreshAuth}: LoginPageProps){
 			return
 		}
 
-		if (code === 200){
+		if (code === 200) {
 			// Code 200, irrespective of actionResult is a successful login
 			const {authToken, refreshToken} = data
 			setLocalStorage({
@@ -46,31 +56,32 @@ function LoginPage({refreshAuth}: LoginPageProps){
 			redirect(-1)
 		}
 
-		if (code == 400){
+		if (code == 400) {
 			const {actionResult} = data as BasicAPIResponse
-			if (actionResult == "ERR_MISSING_BODY_PARAMS"){
+			if (actionResult == "ERR_MISSING_BODY_PARAMS") {
 				const missingProperties: string[] = data.missingProperties
-				if (missingProperties.length === 2){
+				if (missingProperties.length === 2) {
 					setInvalidUserPass([
 						true, true
 					])
-				} else if (missingProperties.indexOf("userName") !== -1){
+				} else if (missingProperties.indexOf("userName") !== -1) {
 					setInvalidUserPass([
 						true, invalidPassword
 					])
-				} else if (missingProperties.indexOf("userPass") !== -1){
+				} else if (missingProperties.indexOf("userPass") !== -1) {
 					setInvalidUserPass([
 						invalidUsername, true
 					])
-				} else {}
-			} else if (actionResult === "ERR_INVALID_PROPERTIES"){
+				} else {
+				}
+			} else if (actionResult === "ERR_INVALID_PROPERTIES") {
 				const invalidProperties: string[] = data.invalidProperties
-				if (invalidProperties.indexOf("userName") !== -1){
+				if (invalidProperties.indexOf("userName") !== -1) {
 					setInvalidUserPass([
 						true, invalidPassword
 					])
 				}
-				if (invalidProperties.indexOf("userPass") !== -1){
+				if (invalidProperties.indexOf("userPass") !== -1) {
 					setInvalidUserPass([
 						invalidUsername, true
 					])
@@ -80,119 +91,127 @@ function LoginPage({refreshAuth}: LoginPageProps){
 	}, [inputUsername, inputPassword])
 
 	useEffect(() => {
-		if (invalidUsername && invalidPassword){
+		if (invalidUsername && invalidPassword) {
 			showToast({
 				status: "warning",
 				title: "Invalid credentials provided!",
 				description: "Username and password are invalid!"
 			})
-		} else if (invalidUsername && !invalidPassword){
+		} else if (invalidUsername && !invalidPassword) {
 			showToast({
 				status: "warning",
 				title: "Invalid username provided!",
 				description: "Username is invalid!"
 			})
-		} else if (!invalidUsername && invalidPassword){
+		} else if (!invalidUsername && invalidPassword) {
 			showToast({
 				status: "warning",
 				title: "Invalid password provided!",
 				description: "Password is invalid!"
 			})
-		} else {}
+		} else {
+		}
 	}, [invalidUsername, invalidPassword])
 
 	return (
-		<Flex
-			flexDirection={"column"}
-		>
-			<Spacer
-				minHeight={"20vh"}
-			/>
-			<Center
-				width={"100vw"}
+		<>
+			<Helmet>
+				<title>Communitty - Login</title>
+				<meta name={"description"} content={"Log in to Communitty"}/>
+				<meta name={"keywords"} content={"communitty, login, log in"}/>
+			</Helmet>
+			<Flex
+				flexDirection={"column"}
 			>
-				<Box
-					borderRadius={"5px"}
-					color={"grey.400"}
-					border={"1px"}
-					padding={"2%"}
-					minWidth={"33vw"}
-					maxWidth={"66vw"}
+				<Spacer
+					minHeight={"20vh"}
+				/>
+				<Center
+					width={"100vw"}
 				>
-					<Image
-						src={`/home-icon.svg`}
-						alt={"Communitty"}
-						marginX={"5vw"}
-					/>
-					<Spacer
-						height={"5vh"}
-					/>
-					<Input
-						placeholder={"Username"}
-						borderColor={
-							invalidUsername ?
-								"orangered" : "inherit"
-						}
-						onChange={(e) => {
-							e.preventDefault()
-							setInvalidUserPass([
-								false, invalidPassword
-							])
-							setInputUsername(e.target.value)
-						}}
-					/>
-					<Spacer
-						height={"5vh"}
-					/>
-					<Input
-						type={"password"}
-						placeholder={"Password"}
-						borderColor={
-							invalidPassword ?
-								"orangered" : "inherit"
-						}
-						onChange={(e) => {
-							setInvalidUserPass([
-								invalidUsername, false
-							])
-							e.preventDefault()
-							setInputPassword(e.target.value)
-						}}
-					/>
-					<Spacer
-						height={"5vh"}
-					/>
-					<Flex
-						justifyContent={"space-evenly"}
+					<Box
+						borderRadius={"5px"}
+						color={"grey.400"}
+						border={"1px"}
+						padding={"2%"}
+						minWidth={"33vw"}
+						maxWidth={"66vw"}
 					>
-						<Button
-							variant={"brandPrimary"}
-							onClick={() => {
-								attemptLogin()
+						<Image
+							src={`/home-icon.svg`}
+							alt={"Communitty"}
+							marginX={"5vw"}
+						/>
+						<Spacer
+							height={"5vh"}
+						/>
+						<Input
+							placeholder={"Username"}
+							borderColor={
+								invalidUsername ?
+									"orangered" : "inherit"
+							}
+							onChange={(e) => {
+								e.preventDefault()
+								setInvalidUserPass([
+									false, invalidPassword
+								])
+								setInputUsername(e.target.value)
 							}}
+						/>
+						<Spacer
+							height={"5vh"}
+						/>
+						<Input
+							type={"password"}
+							placeholder={"Password"}
+							borderColor={
+								invalidPassword ?
+									"orangered" : "inherit"
+							}
+							onChange={(e) => {
+								setInvalidUserPass([
+									invalidUsername, false
+								])
+								e.preventDefault()
+								setInputPassword(e.target.value)
+							}}
+						/>
+						<Spacer
+							height={"5vh"}
+						/>
+						<Flex
+							justifyContent={"space-evenly"}
 						>
-							Log In
-						</Button>
-						<Button
-							variant={"outline"}
-							onClick={() => {
+							<Button
+								variant={"brandPrimary"}
+								onClick={() => {
+									attemptLogin()
+								}}
+							>
+								Log In
+							</Button>
+							<Button
+								variant={"outline"}
+								onClick={() => {
+									redirect('/signup')
+								}}
+							>
+								Sign Up
+							</Button>
+							<Button
+								colorScheme={"red"}
+								onClick={() => {
 
-							}}
-						>
-							Sign Up
-						</Button>
-						<Button
-							colorScheme={"red"}
-							onClick={() => {
-
-							}}
-						>
-							Forgot Password
-						</Button>
-					</Flex>
-				</Box>
-			</Center>
-		</Flex>
+								}}
+							>
+								Forgot Password
+							</Button>
+						</Flex>
+					</Box>
+				</Center>
+			</Flex>
+		</>
 	)
 }
 

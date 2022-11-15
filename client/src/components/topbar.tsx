@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useEffect, useState} from 'react'
+import {useContext, useEffect, useState} from 'react'
 import {FaSearch, FaSpinner, FaHome} from "react-icons/fa";
 import {Avatar, Box, Button, Flex, IconButton, Image, Input, Spacer, Text} from "@chakra-ui/react";
 import {useNavigate} from "react-router-dom";
@@ -8,6 +8,7 @@ import {resetLocalStorage, useAPIRequest} from "../utils/apiHandler";
 import {ThemeSwitch} from "./themeSwitch";
 import {HomeIcon} from "./homeIcon";
 import {TopBarProps} from "../utils/typeDefs";
+import {ProfileContext} from "../utils/profileContext";
 
 function TopBar({authState, refreshAuth}: TopBarProps): JSX.Element {
 
@@ -20,20 +21,7 @@ function TopBar({authState, refreshAuth}: TopBarProps): JSX.Element {
 
 	const [searchTerm, setSearchTerm] = useState<string | null>(null)
 
-	const [profileData, setProfileData] = useState<any>(null)
-
-	useEffect(() => {
-		if (isSuccess){
-			if (code === 200){
-				const {actionResult, profileData} = data
-				if (actionResult === "SUCCESS") {
-					setProfileData(profileData)
-				}
-			} else {
-				setProfileData(null)
-			}
-		}
-	}, [isLoading, isSuccess])
+	const profileData = useContext(ProfileContext)
 
 	return (
 		<Box
@@ -107,7 +95,8 @@ function TopBar({authState, refreshAuth}: TopBarProps): JSX.Element {
 					) : (
 						<>
 							<Button onClick={() => {
-								// redirect(`/users/${profileData.username}/`)
+								// Mock logout
+								// TODO: Remove in prod
 								resetLocalStorage()
 								refreshAuth()
 							}}>

@@ -13,12 +13,10 @@ if (!container){
 const root = ReactDOM.createRoot(container)
 
 root.render(
-	<React.StrictMode>
-		<HelmetProvider>
-			<ChakraProvider theme={globalTheme}>
-				<ColorModeScript initialColorMode={globalTheme.config.initialColorMode} />
-				<App />
-			</ChakraProvider>
-		</HelmetProvider>
-	</React.StrictMode>
+	<HelmetProvider>
+		<ChakraProvider theme={globalTheme}>
+			<ColorModeScript initialColorMode={globalTheme.config.initialColorMode} />
+			<App />
+		</ChakraProvider>
+	</HelmetProvider>
 )
