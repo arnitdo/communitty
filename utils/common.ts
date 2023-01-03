@@ -4,8 +4,8 @@ import {db} from "./db"
 
 type PropertyValidatorType = (property: any) => boolean
 
-function validateAuthToken(authToken: string): [boolean, JwtPayload | string | null] {
-	let authTokenData: JwtPayload | string | null = null
+function validateAuthToken(authToken: string): [boolean, any] {
+	let authTokenData: any = null
 	try {
 		authTokenData = verify(
 			authToken,
@@ -32,8 +32,8 @@ function validateAuthToken(authToken: string): [boolean, JwtPayload | string | n
 	}
 }
 
-function validateRefreshToken(refreshToken: string): [boolean, (JwtPayload | string | null)] {
-	let refreshTokenData: JwtPayload | string | null = null
+function validateRefreshToken(refreshToken: string): [boolean, any] {
+	let refreshTokenData: any = null
 	try {
 		refreshTokenData = verify(
 			refreshToken,
