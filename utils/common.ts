@@ -4,15 +4,16 @@ import {db} from "./db"
 
 type PropertyValidatorType = (property: any) => boolean
 
-function validateAuthToken(authToken: string): [boolean, JwtPayload | null] {
-	let authTokenData: JwtPayload = {}
+function validateAuthToken(authToken: string): [boolean, JwtPayload | string | null] {
+	let authTokenData: JwtPayload | string | null = null
 	try {
 		authTokenData = verify(
 			authToken,
 			// @ts-ignore
 			process.env.JWT_SECRET,
 			{
-				maxAge: "1h"
+				maxAge: "1h",
+				algorithms: ["HS256"]
 			}
 		)
 		if (authTokenData.tokenType == "AUTH") {
@@ -31,8 +32,8 @@ function validateAuthToken(authToken: string): [boolean, JwtPayload | null] {
 	}
 }
 
-function validateRefreshToken(refreshToken: string): [boolean, JwtPayload | null] {
-	let refreshTokenData: JwtPayload | null = null
+function validateRefreshToken(refreshToken: string): [boolean, (JwtPayload | string | null)] {
+	let refreshTokenData: JwtPayload | string | null = null
 	try {
 		refreshTokenData = verify(
 			refreshToken,

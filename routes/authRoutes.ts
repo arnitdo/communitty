@@ -54,7 +54,8 @@ function generateAuthAndRefreshTokens(userName: string): [string, string] {
 		// @ts-ignore
 		process.env.JWT_SECRET,
 		{
-			expiresIn: "1h"
+			expiresIn: "1h",
+			algorithm: "HS256"
 		}
 	)
 
@@ -66,7 +67,8 @@ function generateAuthAndRefreshTokens(userName: string): [string, string] {
 		// @ts-ignore
 		process.env.JWT_SECRET,
 		{
-			expiresIn: "1d"
+			expiresIn: "1d",
+			algorithm: "HS256"
 		}
 	)
 
