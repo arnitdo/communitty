@@ -30,13 +30,22 @@ function HomeFeed({authState, refreshAuth}: HomeFeedProps): JSX.Element {
 	}, [authState])
 
 	useEffect(() => {
-		if (isSuccess){
+		if (isSuccess && !isLoading){
 			if (code === 200 && data.actionResult == "SUCCESS"){
 				const {feedData, feedFallback} = data
 				const newPostData = feedData as PostProps[]
 
 
 				const existingPostData = [...postData]
+
+				if (newPostData.length == 0){
+					showToast({
+						status: "info",
+						isClosable: true,
+						title: "No more posts to display",
+						description: "You've scrolled too far, take some rest"
+					})
+				}
 
 				const newPostIds = newPostData.map((post) => {
 					return post.postId
@@ -88,6 +97,7 @@ function HomeFeed({authState, refreshAuth}: HomeFeedProps): JSX.Element {
 				flexDirection={"column"}
 				gap={"1vh"}
 				overflowY={"scroll"}
+				marginBottom={"10vh"}
 			>
 				<>
 					{

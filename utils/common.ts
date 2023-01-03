@@ -5,14 +5,14 @@ import {db} from "./db"
 type PropertyValidatorType = (property: any) => boolean
 
 function validateAuthToken(authToken: string): [boolean, any] {
-	let authTokenData: any = null
+	let authTokenData: any = {}
 	try {
 		authTokenData = verify(
 			authToken,
 			// @ts-ignore
 			process.env.JWT_SECRET,
 			{
-				maxAge: "1h",
+				maxAge: "1m",
 				algorithms: ["HS256"]
 			}
 		)
@@ -33,7 +33,7 @@ function validateAuthToken(authToken: string): [boolean, any] {
 }
 
 function validateRefreshToken(refreshToken: string): [boolean, any] {
-	let refreshTokenData: any = null
+	let refreshTokenData: any = {}
 	try {
 		refreshTokenData = verify(
 			refreshToken,

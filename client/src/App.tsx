@@ -4,7 +4,7 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import {TopBar} from "./components/topbar";
 import {useCallback, useEffect, useState} from "react";
 import {HomeFeed} from "./pages/homeFeed";
-import {Spacer} from "@chakra-ui/react";
+import {Spacer, useToast} from "@chakra-ui/react";
 import {LoginPage} from "./pages/loginPage";
 import {ProfileContext} from "./utils/profileContext";
 import {ProfileContextType} from "./utils/typeDefs";
@@ -22,12 +22,22 @@ function App(): JSX.Element {
 		useAuthentication: true
 	}, [authState])
 
+	const showToast = useToast()
+
 	useEffect(() => {
-		if (isSuccess){
+		if (isSuccess && !isLoading){
 			if (code === 200){
 				const {actionResult, profileData} = data
 				if (actionResult === "SUCCESS") {
 					setProfileValue(profileData)
+				}
+				if (!profileData.accountActivated){
+					showToast({
+						status: "warning",
+						isClosable: true,
+						title: "Account activation is incomplete",
+						description: "Follow the steps in the activation mail sent to your account"
+					})
 				}
 			} else {
 				setProfileValue(null)

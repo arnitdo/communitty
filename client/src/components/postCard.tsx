@@ -8,10 +8,10 @@ import {
 	Link as ChakraLink,
 	Flex,
 	Button,
-	useToast
+	useToast, Spacer
 } from "@chakra-ui/react";
-import {AiFillHeart, AiOutlineHeart} from "react-icons/ai";
-import {Link} from "react-router-dom";
+import {AiFillHeart, AiOutlineComment, AiOutlineHeart} from "react-icons/ai";
+import {Link, useNavigate} from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import ChakraUIRenderer from "chakra-ui-markdown-renderer";
 import {useCallback, useEffect, useState} from "react";
@@ -79,14 +79,17 @@ function PostCard(props: PostProps): JSX.Element {
 	const {
 		postId, postAuthor, postType, postTitle,
 		postBody, postModifiedTime, postCommentCount,
-		postLikeCount, userLikeStatus
+		postTags, postEdited, postLikeCount, userLikeStatus
 	} = props
+
+	const postModifiedDate = new Date(postModifiedTime)
 
 	const [likeCount, setLikeCount] = useState<number>(postLikeCount)
 
 	const [likeStatus, setLikeStatus] = useState<boolean>(userLikeStatus)
 
 	const showToast = useToast()
+	const redirect = useNavigate()
 
 	useEffect(() => {
 		setLikeStatus(userLikeStatus)
@@ -135,8 +138,6 @@ function PostCard(props: PostProps): JSX.Element {
 		}
 	}, [likeStatus])
 
-	const PostContentComponent = contentTypeLookup[postType]
-
 	return (
 		<Box
 			borderRadius={"5px"}
@@ -146,18 +147,23 @@ function PostCard(props: PostProps): JSX.Element {
 			boxShadow={"md"}
 			border={"1px"}
 			borderColor={"grey.400"}
-			padding={"10px"}
+			paddingX={"1.5rem"}
+			paddingY={"0.75rem"}
 		>
 			<Text
 				fontSize={"xl"}
 				margin={"5px"}
 			>
-				<Text as={'b'}>
-					{postTitle}
-				</Text>
+				<ChakraLink>
+					<Text as={'b'}>
+						<Link to={`/posts/${postId}/`}>
+							{postTitle}
+						</Link>
+					</Text>
+				</ChakraLink>
 				<Text
 					float={"right"}
-					as={'span'}
+					as={'i'}
 					fontSize={"sm"}
 				>
 					<Link
@@ -169,48 +175,53 @@ function PostCard(props: PostProps): JSX.Element {
 							{postAuthor}
 						</Text>
 					</Link>
+					{" " + postModifiedDate.toLocaleDateString()}
 				</Text>
 			</Text>
-			<Divider
-				borderColor={"grey.400"}
-			/>
-			<Box
-				padding={"10px"}
-				minWidth={"inherit"}
-			>
-				<PostContentComponent
-					postTitle={postTitle}
-					postBody={postBody}
-				></PostContentComponent>
-			</Box>
+			<Box height={"2vh"} />
 			<Flex
 				flexDirection={"row"}
+				gap={"1"}
+			>
+				{postTags.map((postTag) => {
+					postTag = postTag.replace("#", "")
+					return (
+						<Button
+							padding={"1vh 1vw"}
+							borderRadius={"5px"}
+							onClick={() => {
+								redirect(`/posts/search?searchQuery=${postTag}`)
+							}}
+						>
+							{"#" + postTag}
+						</Button>
+					)
+				})}
+			</Flex>
+			<Box height={"2vh"} />
+			<Flex
+				flexDirection={"row"}
+				gap={"1"}
+				alignItems={"center"}
 			>
 				{likeStatus ? (
-					<Button
-						onClick={toggleLike}
-					>
+					<>
 						<AiFillHeart
 							color={"hotpink"}
 						/>
-						&nbsp;
-						<Text>
-							{likeCount}
-						</Text>
-					</Button>
+						{likeCount}
+					</>
 				) : (
-					<Button
-						onClick={toggleLike}
-					>
+					<>
 						<AiOutlineHeart
-							color={"hotpink"}
-						/>
-						&nbsp;
-						<Text>
-							{likeCount}
-						</Text>
-					</Button>
+						color={"hotpink"}
+							/>
+						{`${likeCount} ${likeCount == 1 ? "Like" : "Likes"}`}
+					</>
 				)}
+				<Spacer />
+				<AiOutlineComment />
+				{`${postCommentCount} ${postCommentCount == 1 ? "Comment" : "Comments"}`}
 			</Flex>
 		</Box>
 	)

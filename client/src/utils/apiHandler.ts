@@ -199,7 +199,7 @@ async function makeAPIRequest(requestProperties: APIRequestParams): Promise<APIR
 				return {
 					isSuccess: false,
 					isError: true,
-					code: 0,
+					code: 404,
 					data: null,
 					error: new Error("ERR_NOT_FOUND")
 				}
