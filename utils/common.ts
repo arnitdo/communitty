@@ -12,7 +12,7 @@ function validateAuthToken(authToken: string): [boolean, any] {
 			// @ts-ignore
 			process.env.JWT_SECRET,
 			{
-				maxAge: "1m",
+				maxAge: "1h",
 				algorithms: ["HS256"]
 			}
 		)
