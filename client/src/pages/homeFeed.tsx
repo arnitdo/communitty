@@ -107,7 +107,7 @@ function HomeFeed({authState, refreshAuth}: HomeFeedProps): JSX.Element {
 						})
 					}
 				</>
-				<Button onClick={loadMorePosts}>Load More Posts</Button>
+				<Button variant={"brandPrimary"} onClick={loadMorePosts}>Load More Posts</Button>
 			</Flex>
 		</Center>
 	)

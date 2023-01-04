@@ -1,3 +1,8 @@
+import React from "react";
+import {IconType} from "react-icons";
+
+export type PostContentType = "TEXT_POST" | "LINK_POST" | "IMAGE_POST"
+
 export interface TopBarControlComponent {
 	setShowTopBar: (newState: (((prevState: boolean) => boolean) | boolean)) => void
 }
@@ -21,7 +26,7 @@ export interface LoginPageProps extends AuthComponent {
 export interface PostProps {
 	postId: number,
 	postAuthor: string,
-	postType: string,
+	postType: PostContentType,
 	postTitle: string,
 	postBody: string,
 	postTags: string[],
@@ -31,14 +36,8 @@ export interface PostProps {
 	postEdited: boolean,
 	userLikeStatus: boolean
 }
-
-export interface PostContentProps {
-	postTitle: string,
-	postBody: string
-}
-
-export type ContentTypeLookupType = {
-	[contentType: string]: ({postTitle, postBody}: PostContentProps) => JSX.Element
+export type PostContentIconLookupType = {
+	[ContentType in PostContentType]: IconType
 }
 
 export type ProfileContextType = {

@@ -1,78 +1,30 @@
 import * as React from 'react';
 import {
 	Box,
-	Center,
-	Divider,
-	Image,
 	Text,
 	Link as ChakraLink,
 	Flex,
 	Button,
 	useToast, Spacer
 } from "@chakra-ui/react";
-import {AiFillHeart, AiOutlineComment, AiOutlineHeart} from "react-icons/ai";
+import {
+	AiFillHeart,
+	AiOutlineComment,
+	AiOutlineFileImage,
+	AiOutlineAlignLeft,
+	AiOutlineHeart,
+	AiOutlineLink
+} from "react-icons/ai";
 import {Link, useNavigate} from "react-router-dom";
-import ReactMarkdown from "react-markdown";
-import ChakraUIRenderer from "chakra-ui-markdown-renderer";
 import {useCallback, useEffect, useState} from "react";
 
 import {makeAPIRequest} from "../utils/apiHandler";
-import {PostContentProps, PostProps, ContentTypeLookupType} from '../utils/typeDefs'
+import {PostProps, PostContentIconLookupType} from '../utils/typeDefs'
 
-function TextPostContent({postTitle, postBody}: PostContentProps): JSX.Element {
-	return (
-		<ReactMarkdown components={ChakraUIRenderer()}>
-			{postBody}
-		</ReactMarkdown>
-	)
-}
-
-
-function ImagePostContent({postTitle, postBody}: PostContentProps): JSX.Element {
-	return (
-		<Center>
-			<Image
-				src={postBody}
-				alt={postTitle}
-				maxHeight={"30vh"}
-			>
-			</Image>
-		</Center>
-	)
-}
-
-function LinkPostContent({postTitle, postBody}: PostContentProps): JSX.Element {
-	const contentURL = new URL(postBody)
-
-	const contentDomain = contentURL.origin
-	const displayIconURL = `${contentDomain}/favicon.ico`
-
-	return (
-		<Box
-			maxWidth={"inherit"}
-		>
-			<Image
-				src={displayIconURL}
-				alt={postTitle}
-			>
-			</Image>
-			<ChakraLink
-				href={postBody}
-			>
-				<Text
-					color={"blue.400"}
-				>
-					{postBody}
-				</Text>
-			</ChakraLink>
-		</Box>
-	)
-}
-
-const contentTypeLookup: ContentTypeLookupType = {
-	"TEXT_POST": TextPostContent,
-	"IMAGE_POST": ImagePostContent,
-	"LINK_POST": LinkPostContent
+const postContentIcons: PostContentIconLookupType = {
+	"TEXT_POST": AiOutlineAlignLeft,
+	"IMAGE_POST": AiOutlineFileImage,
+	"LINK_POST": AiOutlineLink
 }
 
 function PostCard(props: PostProps): JSX.Element {
@@ -90,6 +42,8 @@ function PostCard(props: PostProps): JSX.Element {
 
 	const showToast = useToast()
 	const redirect = useNavigate()
+
+	const PostContentIcon = postContentIcons[postType]
 
 	useEffect(() => {
 		setLikeStatus(userLikeStatus)
@@ -142,90 +96,88 @@ function PostCard(props: PostProps): JSX.Element {
 		<Box
 			borderRadius={"5px"}
 			minWidth={"50vw"}
-			maxWidth={"66vw"}
+			maxWidth={"80vw"}
 			maxHeight={"50vh"}
 			boxShadow={"md"}
 			border={"1px"}
 			borderColor={"grey.400"}
 			paddingX={"1.5rem"}
-			paddingY={"0.75rem"}
+			paddingY={"1.5rem"}
 		>
-			<Text
-				fontSize={"xl"}
-				margin={"5px"}
-			>
-				<ChakraLink>
-					<Text as={'b'}>
-						<Link to={`/posts/${postId}/`}>
-							{postTitle}
-						</Link>
-					</Text>
-				</ChakraLink>
-				<Text
-					float={"right"}
-					as={'i'}
-					fontSize={"sm"}
+			<Flex gap={"4"}>
+				<Flex
+					flexDirection={"column"}
+					alignItems={"center"}
+					justifyContent={"center"}
 				>
-					<Link
-						to={`/users/${postAuthor}`}
-					>
-						<Text
-							as={'u'}
-						>
-							{postAuthor}
-						</Text>
-					</Link>
-					{" " + postModifiedDate.toLocaleDateString()}
-				</Text>
-			</Text>
-			<Box height={"2vh"} />
-			<Flex
-				flexDirection={"row"}
-				gap={"1"}
-			>
-				{postTags.map((postTag) => {
-					postTag = postTag.replace("#", "")
-					return (
-						<Button
-							padding={"1vh 1vw"}
-							borderRadius={"5px"}
-							onClick={() => {
-								redirect(`/posts/search?searchQuery=${postTag}`)
-							}}
-						>
-							{"#" + postTag}
-						</Button>
-					)
-				})}
-			</Flex>
-			<Box height={"2vh"} />
-			<Flex
-				flexDirection={"row"}
-				gap={"1"}
-				alignItems={"center"}
-			>
-				{likeStatus ? (
-					<>
-						<AiFillHeart
-							color={"hotpink"}
-						/>
-						{likeCount}
-					</>
-				) : (
-					<>
-						<AiOutlineHeart
-						color={"hotpink"}
-							/>
-						{`${likeCount} ${likeCount == 1 ? "Like" : "Likes"}`}
-					</>
-				)}
-				<Spacer />
-				<AiOutlineComment />
-				{`${postCommentCount} ${postCommentCount == 1 ? "Comment" : "Comments"}`}
+					<Text fontSize={"5xl"}>
+						<PostContentIcon/>
+					</Text>
+				</Flex>
+				<Flex
+					flexDirection={"column"}
+					gap={"2"}
+					justifyContent={"center"}
+				>
+					<Text>
+						<ChakraLink as={Link} to={`/posts/${postId}/`}>
+							<Text as={'b'} fontSize={"xl"}>
+								{postTitle}
+							</Text>
+						</ChakraLink>
+					</Text>
+					<Text>
+						<ChakraLink as={Link} to={`/users/${postAuthor}/`}>
+							<Text as={"span"} fontSize={"sm"}>
+								{`@${postAuthor}`}
+							</Text>
+						</ChakraLink>
+					</Text>
+					<Flex gap={"1"}>
+						{postTags.map((postTag) => {
+							return (
+								<Button
+									size={"sm"}
+									onClick={() => {
+										redirect(`/posts/search?searchQuery=${postTag}`)
+									}}
+								>
+									{`#${postTag}`}
+								</Button>
+							)
+						})}
+					</Flex>
+				</Flex>
+				<Spacer width={"10vw"}/>
+				<Flex
+					flexDirection={"column"}
+					gap={"2"}
+					justifyContent={"center"}
+				>
+					<Text>
+						{postModifiedDate.toLocaleDateString()}
+					</Text>
+					<Flex gap={"1"} alignItems={"baseline"}>
+						{likeStatus ? (
+							<>
+								<AiFillHeart/>
+								{`${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
+							</>
+						) : (
+							<>
+								<AiOutlineHeart/>
+								{`${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
+							</>
+						)}
+					</Flex>
+					<Flex gap={"1"} alignItems={"baseline"}>
+						<AiOutlineComment />
+						{`${postCommentCount} ${postCommentCount === 1 ? "Comment" : "Comments"}`}
+					</Flex>
+				</Flex>
 			</Flex>
 		</Box>
 	)
-
 }
 
 export {
