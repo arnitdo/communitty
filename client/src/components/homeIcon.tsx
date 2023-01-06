@@ -1,8 +1,9 @@
-import {Image, useMediaQuery} from "@chakra-ui/react";
+import {Image, ImageProps, useMediaQuery} from "@chakra-ui/react";
 import * as React from "react";
 import {useNavigate} from "react-router-dom";
+import {HomeIconType} from '../utils/typeDefs'
 
-function HomeIcon(): JSX.Element {
+function HomeIcon({maxHeight}: HomeIconType): JSX.Element {
 
 	const redirect = useNavigate()
 
@@ -17,10 +18,10 @@ function HomeIcon(): JSX.Element {
 			}
 			alt={"Communitty"}
 			aria-label={"Click to return to the homepage"}
-			maxHeight={"2em"}
 			onClick={() => {
 				redirect("/")
 			}}
+			maxHeight={maxHeight || "2em"}
 			cursor={"pointer"}
 		/>
 	)
