@@ -1,47 +1,5 @@
 import {DependencyList, useCallback, useEffect, useState} from "react";
-
-export type APIResponse = {
-	isSuccess: boolean,
-	isError: boolean,
-	code: number,
-	data?: BasicAPIResponse,
-	error?: Error
-}
-
-export type APIResponseState = [
-	/* isLoading */ boolean,
-	/* isSuccess */ boolean,
-	/* isError */ boolean,
-	/* code */ number | null,
-	/* data */ BasicAPIResponse | null,
-	/* error */ Error | null
-]
-
-// Type spaghetti just to get some sensible tsc hints during compilation
-// Make sure to update this when API handlers are updated
-export type ActionResult = "SUCCESS"							// Success
-	| "ERR_NOT_FOUND"											// 404 Not Found
-	| "ERR_INVALID_TOKEN" | "ERR_AUTH_REQUIRED"					// No auth / invalid auth
-	| "ERR_AUTH_EXPIRED" | "REFRESH_EXPIRED"					// Auth / Refresh token expired
-	| "ERR_INSUFFICIENT_PERMS"									// Not owner of content
-	| "ERR_RATE_LIMITED"										// Ratelimited
-	| "ERR_MISSING_PROPERTIES" | "ERR_INVALID_PROPERTIES"		// Invalid request
-	| "ERR_DUPLICATE_PROPERTIES"								// Duplicate values
-	| `ERR_${"NOT" | "ALREADY"}_${"LIKED" | "FOLLOWED"}`		// Already/Not following / liked content
-	| `ERR_SELF_${"UN" | ""}FOLLOW`								// Self follow / unfollow
-	| "ERR_INTERNAL_ERROR"										// Internal error
-
-export type BasicAPIResponse = {
-	actionResult: ActionResult
-} & any
-
-export type APIRequestParams = {
-	url: string,
-	method?: "GET" | "POST" | "PUT" | "DELETE",
-	useAuthentication?: boolean
-	bodyParams?: object,
-	queryParams?: object
-}
+import {BasicAPIResponse, ActionResult, APIResponseState, APIResponse, APIRequestParams} from "./typeDefs";
 
 function developmentAPIURL(urlPath: string): string{
 	// For development environments, route API calls to local express server
@@ -95,7 +53,10 @@ if (process.env.NODE_ENV === "development"){
 async function makeAPIRequest(requestProperties: APIRequestParams): Promise<APIResponse> {
 	const {url, method, useAuthentication, bodyParams, queryParams} = requestProperties
 
-	const baseHostname: string = "https://communitty.onrender.com"
+	const baseHostname: string =
+		process.env.NODE_ENV === "development" ?
+			"https://localhost:8800/"		:
+			"https://communitty.onrender.com"
 
 	const resolvedURL = new URL(
 		API_URL(url),
@@ -234,6 +195,12 @@ function useAPIRequest(requestProperties: APIRequestParams, deps: DependencyList
 
 	const makeRequest = useCallback(async () => {
 		setIsLoading(true)
+		setIsSuccess(false)
+		setIsError(false)
+		setCode(0)
+		setData(null)
+		setError(null)
+
 		const response = await makeAPIRequest(requestProperties)
 		setIsLoading(false)
 
