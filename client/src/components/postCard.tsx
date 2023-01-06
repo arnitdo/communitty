@@ -5,7 +5,7 @@ import {
 	Link as ChakraLink,
 	Flex,
 	Button,
-	useToast, Spacer
+	useToast, Spacer, Avatar
 } from "@chakra-ui/react";
 import {
 	AiFillHeart,
@@ -18,7 +18,7 @@ import {
 import {Link, useNavigate} from "react-router-dom";
 import {useCallback, useEffect, useState} from "react";
 
-import {makeAPIRequest} from "../utils/apiHandler";
+import {API_URL, makeAPIRequest} from "../utils/apiHandler";
 import {PostProps, PostContentIconLookupType} from '../utils/typeDefs'
 
 const postContentIcons: PostContentIconLookupType = {
@@ -111,7 +111,7 @@ function PostCard(props: PostProps): JSX.Element {
 					justifyContent={"center"}
 				>
 					<Text fontSize={"5xl"}>
-						<PostContentIcon/>
+						<PostContentIcon aria-label={postType.replace("_", " ")}/>
 					</Text>
 				</Flex>
 				<Flex
@@ -129,6 +129,14 @@ function PostCard(props: PostProps): JSX.Element {
 					<Text>
 						<ChakraLink as={Link} to={`/users/${postAuthor}/`}>
 							<Text as={"span"} fontSize={"sm"}>
+								<Avatar
+									src={
+										API_URL(`/users/${postAuthor}/avatar`)
+									}
+									size={"xs"}
+									aria-label={`${postAuthor}'s avatar`}
+								/>
+								&nbsp;
 								{`@${postAuthor}`}
 							</Text>
 						</ChakraLink>
@@ -148,7 +156,7 @@ function PostCard(props: PostProps): JSX.Element {
 						})}
 					</Flex>
 				</Flex>
-				<Spacer width={"10vw"}/>
+				<Spacer minWidth={"10vw"}/>
 				<Flex
 					flexDirection={"column"}
 					gap={"2"}

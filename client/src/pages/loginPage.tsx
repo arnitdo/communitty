@@ -1,11 +1,13 @@
 import * as React from 'react'
 import {useCallback, useEffect, useState} from 'react'
 import {useNavigate} from "react-router-dom";
-import {Box, Button, Center, Flex, Image, Input, Spacer, useToast} from "@chakra-ui/react";
+import {Box, Button, Center, Flex, Input, Text, useToast} from "@chakra-ui/react";
 import {Helmet} from 'react-helmet-async'
 
-import {BasicAPIResponse, makeAPIRequest, setLocalStorage} from "../utils/apiHandler";
-import {TopBarControlComponent, LoginPageProps} from "../utils/typeDefs";
+import {makeAPIRequest, setLocalStorage} from "../utils/apiHandler";
+import {TopBarControlComponent, BasicAPIResponse, LoginPageProps} from "../utils/typeDefs";
+import {HomeIcon} from "../components/homeIcon";
+import {AiOutlineUser, AiOutlineLock} from "react-icons/ai";
 
 function LoginPage({refreshAuth, setShowTopBar}: LoginPageProps & TopBarControlComponent){
 	const redirect = useNavigate()
@@ -53,7 +55,7 @@ function LoginPage({refreshAuth, setShowTopBar}: LoginPageProps & TopBarControlC
 				"communittyRefreshToken": refreshToken
 			})
 			refreshAuth()
-			redirect(-1)
+			redirect('/')
 		}
 
 		if (code == 400) {
@@ -113,6 +115,8 @@ function LoginPage({refreshAuth, setShowTopBar}: LoginPageProps & TopBarControlC
 		}
 	}, [invalidUsername, invalidPassword])
 
+	const [showPassword, setShowPassword] = useState<boolean>(false)
+
 	return (
 		<>
 			<Helmet>
@@ -120,68 +124,76 @@ function LoginPage({refreshAuth, setShowTopBar}: LoginPageProps & TopBarControlC
 				<meta name={"description"} content={"Log in to Communitty"}/>
 				<meta name={"keywords"} content={"communitty, login, log in"}/>
 			</Helmet>
-			<Flex
-				flexDirection={"column"}
+			<Center
+				width={"100vw"}
+				height={"100vh"}
 			>
-				<Spacer
-					minHeight={"20vh"}
-				/>
-				<Center
-					width={"100vw"}
+				<Box
+					borderRadius={"5px"}
+					color={"grey.400"}
+					border={"1px"}
+					padding={"4rem"}
 				>
-					<Box
-						borderRadius={"5px"}
-						color={"grey.400"}
-						border={"1px"}
-						padding={"2%"}
-						minWidth={"33vw"}
-						maxWidth={"66vw"}
+					<Flex
+						gap={"2rem"}
+						flexDirection={"column"}
+						justifyContent={"space-evenly"}
+						alignItems={"center"}
 					>
-						<Image
-							src={`/home-icon.svg`}
-							alt={"Communitty"}
-							marginX={"5vw"}
-						/>
-						<Spacer
-							height={"5vh"}
-						/>
-						<Input
-							placeholder={"Username"}
-							borderColor={
-								invalidUsername ?
-									"orangered" : "inherit"
-							}
-							onChange={(e) => {
-								e.preventDefault()
-								setInvalidUserPass([
-									false, invalidPassword
-								])
-								setInputUsername(e.target.value)
-							}}
-						/>
-						<Spacer
-							height={"5vh"}
-						/>
-						<Input
-							type={"password"}
-							placeholder={"Password"}
-							borderColor={
-								invalidPassword ?
-									"orangered" : "inherit"
-							}
-							onChange={(e) => {
-								setInvalidUserPass([
-									invalidUsername, false
-								])
-								e.preventDefault()
-								setInputPassword(e.target.value)
-							}}
-						/>
-						<Spacer
-							height={"5vh"}
-						/>
+						<HomeIcon maxHeight={"3em"}/>
+						<Flex
+							alignItems={"center"}
+							gap={"1rem"}
+						>
+							<Text fontSize={"2xl"}>
+								<AiOutlineUser />
+							</Text>
+							<Input
+								placeholder={"Username"}
+								borderColor={
+									invalidUsername ?
+										"orangered" : "inherit"
+								}
+								onChange={(e) => {
+									setInvalidUserPass([
+										false, invalidPassword
+									])
+									setInputUsername(e.target.value)
+								}}
+							/>
+						</Flex>
+						<Flex
+							alignItems={"center"}
+							gap={"1rem"}
+						>
+							<Text fontSize={"2xl"}>
+								<AiOutlineLock />
+							</Text>
+							<Input
+								type={showPassword ? "text" : "password"}
+								placeholder={"Password"}
+								borderColor={
+									invalidPassword ?
+										"orangered" : "inherit"
+								}
+								onChange={(e) => {
+									setInvalidUserPass([
+										invalidUsername, false
+									])
+									setInputPassword(e.target.value)
+								}}
+								onMouseOver={(e) => {
+									setShowPassword(true)
+								}}
+
+								onMouseOut={(e) => {
+									setShowPassword(false)
+								}}
+							/>
+						</Flex>
 						<Flex
 							justifyContent={"space-evenly"}
+							gap={"2"}
 						>
 							<Button
 								variant={"brandPrimary"}
@@ -202,15 +214,14 @@ function LoginPage({refreshAuth, setShowTopBar}: LoginPageProps & TopBarControlC
 							<Button
 								colorScheme={"red"}
 								onClick={() => {
-
-								}}
+									}}
 							>
 								Forgot Password
 							</Button>
 						</Flex>
-					</Box>
-				</Center>
-			</Flex>
+					</Flex>
+				</Box>
+			</Center>
 		</>
 	)
 }

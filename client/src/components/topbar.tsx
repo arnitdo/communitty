@@ -33,7 +33,6 @@ function TopBar({authState, refreshAuth}: TopBarProps): JSX.Element {
 				gap={"0.5vw"}
 				alignItems={"center"}
 			>
-				<Spacer maxWidth={"0.5vw"} />
 				<HomeIcon />
 				<Spacer />
 				<Flex

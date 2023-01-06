@@ -9,9 +9,6 @@ function ThemeSwitch(){
 
 	return (
 		<>
-			<Helmet>
-				<link rel={"icon"} href={`favicon-${colorMode}.ico`} />
-			</Helmet>
 			<IconButton
 				icon={colorMode == 'light' ? <FaSun /> : <FaMoon />}
 				aria-label={"Toggle light/dark mode"}
