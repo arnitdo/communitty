@@ -41,7 +41,7 @@ app.use(clientRouter)
 // Serve app on production port
 
 const appServer = app.listen(process.env.PORT || 8800, () => {
-	console.log("Communitty backend server is up and running!")
+	console.log("Communitty backend server is up and running in " + process.env.NODE_ENV + "mode!")
 })
 
 // Many IDEs / Ctrl-Cs send SIGINT to processes
