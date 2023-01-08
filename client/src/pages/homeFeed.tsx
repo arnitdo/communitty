@@ -95,9 +95,10 @@ function HomeFeed({authState, refreshAuth}: HomeFeedProps): JSX.Element {
 		<Center width={"100vw"}>
 			<Flex
 				flexDirection={"column"}
-				gap={"1vh"}
+				gap={"2"}
 				overflowY={"scroll"}
-				marginBottom={"10vh"}
+				marginY={"5vh"}
+				justifyContent={"space-evenly"}
 			>
 				<>
 					{

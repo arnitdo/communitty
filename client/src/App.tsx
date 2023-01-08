@@ -4,7 +4,7 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import {TopBar} from "./components/topbar";
 import {useCallback, useEffect, useState} from "react";
 import {HomeFeed} from "./pages/homeFeed";
-import {Spacer, useColorMode, useToast} from "@chakra-ui/react";
+import {useColorMode, useToast} from "@chakra-ui/react";
 import {LoginPage} from "./pages/loginPage";
 import {ProfileContext} from "./utils/profileContext";
 import {ProfileContextType} from "./utils/typeDefs";

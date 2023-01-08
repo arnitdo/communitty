@@ -96,7 +96,6 @@ function PostCard(props: PostProps): JSX.Element {
 		<Box
 			borderRadius={"5px"}
 			minWidth={"50vw"}
-			maxWidth={"80vw"}
 			maxHeight={"50vh"}
 			boxShadow={"md"}
 			border={"1px"}
@@ -149,6 +148,7 @@ function PostCard(props: PostProps): JSX.Element {
 									onClick={() => {
 										redirect(`/posts/search?searchQuery=${postTag}`)
 									}}
+									key={`${postId}.${postTag}`}
 								>
 									{`#${postTag}`}
 								</Button>

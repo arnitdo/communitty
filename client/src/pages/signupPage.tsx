@@ -55,74 +55,37 @@ function SignupPage({setShowTopBar}: TopBarControlComponent){
 			if (actionResult === "ERR_DUPLICATE_PROPERTIES"){
 				const duplicateProperties: string[] = data.duplicateProperties
 
-				if (duplicateProperties.includes("userMail")){
-					setDuplicateProperties(([duplicateUserMail, duplicateUserName]) => {
-						return [true, duplicateUserName]
-					})
-				} else {
-					setDuplicateProperties(([duplicateUserMail, duplicateUserName]) => {
-						return [false, duplicateUserName]
-					})
+				const propertyNames = ["userMail", "userName"]
+				const propertyTarget: boolean[] = []
+
+				for (const propertyName of propertyNames) {
+					if (duplicateProperties.includes(propertyName)){
+						propertyTarget.push(true)
+					} else {
+						propertyTarget.push(false)
+					}
 				}
 
-				if (duplicateProperties.includes("userName")){
-					setDuplicateProperties(([duplicateUserMail, duplicateUserName]) => {
-						return [duplicateUserMail, true]
-					})
-				} else {
-					setDuplicateProperties(([duplicateUserMail, duplicateUserName]) => {
-						return [duplicateUserMail, false]
-					})
-				}
-
-				setInvalidProperties([false, false, false, false])
-
-				return
+				setDuplicateProperties(propertyTarget)
 			} else if (actionResult === "ERR_INVALID_PROPERTIES" || actionResult === "ERR_MISSING_BODY_PARAMS"){
 				const invalidOrMissingProperties: string[] = [
 					...(data.invalidProperties || []),
 					...(data.missingProperties || [])
 				]
 
-				if (invalidOrMissingProperties.includes("userMail")){
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [true, invalidUserName, invalidUserPass, invalidFullName]
-					})
-				} else {
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [false, invalidUserName, invalidUserPass, invalidFullName]
-					})
+				const propertyNames: string[] = ["userMail", "userName", "userPass", "fullName"]
+
+				const propertiesTarget: boolean[] = []
+
+				for (const propertyName of propertyNames){
+					if (invalidOrMissingProperties.includes(propertyName)){
+						propertiesTarget.push(true)
+					} else {
+						propertiesTarget.push(false)
+					}
 				}
 
-				if (invalidOrMissingProperties.includes("userName")){
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [invalidUserMail, true, invalidUserPass, invalidFullName]
-					})
-				} else {
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [invalidUserMail, false, invalidUserPass, invalidFullName]
-					})
-				}
-
-				if (invalidOrMissingProperties.includes("userPass")){
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [invalidUserMail, invalidUserName, true, invalidFullName]
-					})
-				} else {
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [invalidUserMail, invalidUserName, false, invalidFullName]
-					})
-				}
-
-				if (invalidOrMissingProperties.includes("fullName")){
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [invalidUserMail, invalidUserName, invalidUserPass, true]
-					})
-				} else {
-					setInvalidProperties(([invalidUserMail, invalidUserName, invalidUserPass, invalidFullName]) => {
-						return [invalidUserMail, invalidUserName, invalidUserPass, false]
-					})
-				}
+				setInvalidProperties(propertiesTarget)
 			} else if (actionResult === "SUCCESS"){
 				setSignupSuccess(true)
 			}
@@ -144,7 +107,7 @@ function SignupPage({setShowTopBar}: TopBarControlComponent){
 			invalidProperties.push("Username")
 		}
 		if (invalidUserPass){
-			invalidProperties.push("Password")
+			invalidProperties.push("Weak  Password")
 		}
 		if (invalidFullName){
 			invalidProperties.push("Display Name")
@@ -210,107 +173,128 @@ function SignupPage({setShowTopBar}: TopBarControlComponent){
 					justifyContent={"space-evenly"}
 					alignItems={"center"}
 				>
-					<HomeIcon maxHeight={"3rem"} />
-					<Flex
-						alignItems={"center"}
-						gap={"1rem"}
-					>
-						<Text fontSize={"2xl"}>
-							<AiOutlineMail />
-						</Text>
-						<Input
-							type={"email"}
-							onChange={(e) => {
-								setUserMail(e.target.value)
-							}}
-							placeholder={"Email"}
-							borderColor={
-								invalidUserMail || duplicateUserMail ?
-									"orangered" : "inherit"
-							}
-						/>
-					</Flex>
-					<Flex
-						alignItems={"center"}
-						gap={"1rem"}
-					>
-						<Text fontSize={"2xl"}>
-							<AiOutlineUser />
-						</Text>
-						<Input
-							type={"text"}
-							onChange={(e) => {
-								setUserName(e.target.value)
-							}}
-							placeholder={"Username"}
-							borderColor={
-								invalidUserName || duplicateUserName ?
-									"orangered" : "inherit"
-							}
-						/>
-					</Flex>
-					<Flex
-						alignItems={"center"}
-						gap={"1rem"}
-					>
-						<Text fontSize={"2xl"}>
-							<AiOutlineLock />
-						</Text>
-						<Input
-							type={showPassword ? "text" : "password"}
-							onChange={(e) => {
-								setUserPass(e.target.value)
-							}}
-							onMouseOver={(e) => {
-								setShowPassword(true)
-							}}
-							onMouseOut={(e) => {
-								setShowPassword(false)
-							}}
-							placeholder={"Password"}
-							borderColor={
-								invalidUserPass ?
-									"orangered" : "inherit"
-							}
-						/>
-					</Flex>
-					<Flex
-						alignItems={"center"}
-						gap={"1rem"}
-					>
-						<Text fontSize={"2xl"}>
-							<AiOutlineIdcard/>
-						</Text>
-						<Input
-							type={"text"}
-							onChange={(e) => {
-								setFullName(e.target.value)
-							}}
-							placeholder={"Display name"}
-							borderColor={
-								invalidFullName ?
-									"orangered" : "inherit"
-							}
-						/>
-					</Flex>
-					<Flex
-						gap={"1rem"}
-					>
-						<Button
-							variant={"brandPrimary"}
-							onClick={() => attemptSignup()}
-						>
-							Sign Up
-						</Button>
-						<Button
-							variant={"outline"}
-							onClick={() => {
-								redirect('/login')
-							}}
-						>
-							Log In
-						</Button>
-					</Flex>
+					{signupSuccess ? (
+						<>
+							<Text
+								fontSize={"2xl"}
+								as={'b'}
+							>
+								You've signed up successfully! To activate your account, follow the steps sent to your registered email address
+							</Text>
+							<Button
+								variant={"brandPrimary"}
+								onClick={() => {
+									redirect('/')
+								}}
+							>
+								Back to Home
+							</Button>
+						</>
+					) : (
+						<>
+							<HomeIcon maxHeight={"3rem"} />
+							<Flex
+								alignItems={"center"}
+								gap={"1rem"}
+							>
+								<Text fontSize={"2xl"}>
+									<AiOutlineMail />
+								</Text>
+								<Input
+									type={"email"}
+									onChange={(e) => {
+										setUserMail(e.target.value)
+									}}
+									placeholder={"Email"}
+									borderColor={
+										invalidUserMail || duplicateUserMail ?
+											"orangered" : "inherit"
+									}
+								/>
+							</Flex>
+							<Flex
+								alignItems={"center"}
+								gap={"1rem"}
+							>
+								<Text fontSize={"2xl"}>
+									<AiOutlineUser />
+								</Text>
+								<Input
+									type={"text"}
+									onChange={(e) => {
+										setUserName(e.target.value)
+									}}
+									placeholder={"Username"}
+									borderColor={
+										invalidUserName || duplicateUserName ?
+											"orangered" : "inherit"
+									}
+								/>
+							</Flex>
+							<Flex
+								alignItems={"center"}
+								gap={"1rem"}
+							>
+								<Text fontSize={"2xl"}>
+									<AiOutlineLock />
+								</Text>
+								<Input
+									type={showPassword ? "text" : "password"}
+									onChange={(e) => {
+										setUserPass(e.target.value)
+									}}
+									onMouseOver={(e) => {
+										setShowPassword(true)
+									}}
+									onMouseOut={(e) => {
+										setShowPassword(false)
+									}}
+									placeholder={"Password"}
+									borderColor={
+										invalidUserPass ?
+											"orangered" : "inherit"
+									}
+								/>
+							</Flex>
+							<Flex
+								alignItems={"center"}
+								gap={"1rem"}
+							>
+								<Text fontSize={"2xl"}>
+									<AiOutlineIdcard/>
+								</Text>
+								<Input
+									type={"text"}
+									onChange={(e) => {
+										setFullName(e.target.value)
+									}}
+									placeholder={"Display name"}
+									borderColor={
+										invalidFullName ?
+											"orangered" : "inherit"
+									}
+								/>
+							</Flex>
+							<Flex
+								gap={"1rem"}
+							>
+								<Button
+									variant={"brandPrimary"}
+									onClick={() => attemptSignup()}
+								>
+									Sign Up
+								</Button>
+								<Button
+									variant={"outline"}
+									onClick={() => {
+										redirect('/login')
+									}}
+								>
+									Log In
+								</Button>
+							</Flex>
+						</>
+					)}
 				</Flex>
 			</Box>
 		</Center>

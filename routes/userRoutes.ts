@@ -127,6 +127,7 @@ async function redirectToUserAvatar(req: Request, res: Response): Promise<void> 
 		const userAvatarURL = userData.avatar_url
 
 		// And sendoff!
+		res.set("Cross-Origin-Resource-Policy", "cross-origin")
 		res.redirect(userAvatarURL)
 
 	} catch (err) {
