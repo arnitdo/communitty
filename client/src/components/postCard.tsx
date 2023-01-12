@@ -36,68 +36,16 @@ function PostCard(props: PostProps): JSX.Element {
 
 	const postModifiedDate = new Date(postModifiedTime)
 
-	const [likeCount, setLikeCount] = useState<number>(postLikeCount)
-
-	const [likeStatus, setLikeStatus] = useState<boolean>(userLikeStatus)
-
-	const showToast = useToast()
 	const redirect = useNavigate()
 
 	const PostContentIcon = postContentIcons[postType]
 
-	useEffect(() => {
-		setLikeStatus(userLikeStatus)
-	}, [userLikeStatus])
-
-	const toggleLike = useCallback(async () => {
-		let requestMethod: "POST" | "DELETE" = "POST"
-		if (likeStatus === true){
-			requestMethod = "DELETE"
-		}
-
-		const {isSuccess, isError, code, data, error} = await makeAPIRequest({
-			url: `/posts/${postId}/likes`,
-			method: requestMethod,
-			useAuthentication: true
-		})
-
-		if (isSuccess === true && code === 200){
-			setLikeCount(
-				likeStatus ?
-					likeCount - 1 :
-					likeCount + 1
-			)
-			setLikeStatus(!likeStatus)
-		} else {
-			if (code === 401){
-				const {actionResult} = data
-
-				if (actionResult == "ERR_AUTH_REQUIRED"){
-					showToast({
-						status: "error",
-						title: "Login",
-						description: "You need to log in to perform this action"
-					})
-				}
-			}
-
-			if (code == 429){
-				// Hitting a rate-limit
-				showToast({
-					status: "warning",
-					title: "Rate Limited",
-					description: "You are performing actions too fast! Take a break!"
-				})
-			}
-		}
-	}, [likeStatus])
 
 	return (
 		<Box
 			borderRadius={"5px"}
 			minWidth={"50vw"}
 			maxHeight={"50vh"}
-			boxShadow={"md"}
 			border={"1px"}
 			borderColor={"grey.400"}
 			paddingX={"1.5rem"}
@@ -156,7 +104,7 @@ function PostCard(props: PostProps): JSX.Element {
 						})}
 					</Flex>
 				</Flex>
-				<Spacer minWidth={"10vw"}/>
+				<Spacer/>
 				<Flex
 					flexDirection={"column"}
 					gap={"2"}
@@ -166,15 +114,15 @@ function PostCard(props: PostProps): JSX.Element {
 						{postModifiedDate.toLocaleDateString()}
 					</Text>
 					<Flex gap={"1"} alignItems={"baseline"}>
-						{likeStatus ? (
+						{userLikeStatus ? (
 							<>
 								<AiFillHeart/>
-								{`${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
+								{`${postLikeCount} ${postLikeCount === 1 ? "Like" : "Likes"}`}
 							</>
 						) : (
 							<>
 								<AiOutlineHeart/>
-								{`${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
+								{`${postLikeCount} ${postLikeCount === 1 ? "Like" : "Likes"}`}
 							</>
 						)}
 					</Flex>

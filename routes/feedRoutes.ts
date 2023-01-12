@@ -255,7 +255,7 @@ async function getFeed(req: Request, res: Response){
 					"actionResult": "SUCCESS",
 					"feedFallback": feedFallback,
 					"feedData": normalizedRows,
-					"recommendedUsers": recommendedUsernames
+					"recommendedUsers": recommendedUserData
 				})
 			}
 		}

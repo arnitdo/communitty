@@ -101,6 +101,16 @@ export type ProfileContextType = {
 	userFollowing: string
 }
 
+export type UserCardProps = {
+	username: string,
+	profileName: string,
+	profileDescription: string,
+	avatarUrl: string,
+	accountActivated: boolean,
+	followerCount: number,
+	followingCount: number
+}
+
 export type HomeIconType = {
 	maxHeight?: string
 }

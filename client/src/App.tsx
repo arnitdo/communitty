@@ -4,7 +4,7 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import {TopBar} from "./components/topbar";
 import {useCallback, useEffect, useState} from "react";
 import {HomeFeed} from "./pages/homeFeed";
-import {useColorMode, useToast} from "@chakra-ui/react";
+import {Box, useColorMode, useToast} from "@chakra-ui/react";
 import {LoginPage} from "./pages/loginPage";
 import {ProfileContext} from "./utils/profileContext";
 import {ProfileContextType} from "./utils/typeDefs";
@@ -58,57 +58,61 @@ function App(): JSX.Element {
 	const {colorMode} = useColorMode()
 
 	return (
-		<ProfileContext.Provider value={profileValue}>
-			{/*Metadata*/}
-			<Helmet>
-				<title>Welcome to Communitty!</title>
-				<meta
-					name={"description"}
-					content={"Welcome to Communitty, an open source social media application!"}
-				></meta>
-				<meta
-					name={"keywords"}
-					content={"communitty,open source,community,social media"}
-				></meta>
-				<link rel={"icon"} href={`favicon-${colorMode}.ico`} />
-			</Helmet>
+		<Box
+			minWidth={"fit-content"}
+		>
+			<ProfileContext.Provider value={profileValue}>
+				{/*Metadata*/}
+				<Helmet>
+					<title>Welcome to Communitty!</title>
+					<meta
+						name={"description"}
+						content={"Welcome to Communitty, an open source social media application!"}
+					></meta>
+					<meta
+						name={"keywords"}
+						content={"communitty,open source,community,social media"}
+					></meta>
+					<link rel={"icon"} href={`favicon-${colorMode}.ico`} />
+				</Helmet>
 
-			{/*Routing*/}
-			<BrowserRouter>
-				{showTopBar ? (
-					<>
-						<TopBar
-							authState={authState}
-							refreshAuth={() => refreshAuth()}
-						/>
-					</>
-				) : null}
-				<Routes>
-					<Route
-						path={"/"}
-						element={
-							<HomeFeed
+				{/*Routing*/}
+				<BrowserRouter>
+					{showTopBar ? (
+						<>
+							<TopBar
 								authState={authState}
 								refreshAuth={() => refreshAuth()}
 							/>
-						}
-					/>
-					<Route
-						path={"login"}
-						element={<LoginPage
-							refreshAuth={() => refreshAuth()}
-							setShowTopBar={setShowTopBar}
-						/>}
-					/>
-					<Route
-						path={"signup"}
-						element={<SignupPage
-							setShowTopBar={setShowTopBar}
-						/>}
-					/>
-				</Routes>
-			</BrowserRouter>
-		</ProfileContext.Provider>
+						</>
+					) : null}
+					<Routes>
+						<Route
+							path={"/"}
+							element={
+								<HomeFeed
+									authState={authState}
+									refreshAuth={() => refreshAuth()}
+								/>
+							}
+						/>
+						<Route
+							path={"login"}
+							element={<LoginPage
+								refreshAuth={() => refreshAuth()}
+								setShowTopBar={setShowTopBar}
+							/>}
+						/>
+						<Route
+							path={"signup"}
+							element={<SignupPage
+								setShowTopBar={setShowTopBar}
+							/>}
+						/>
+					</Routes>
+				</BrowserRouter>
+			</ProfileContext.Provider>
+		</Box>
 	)
 }
 
